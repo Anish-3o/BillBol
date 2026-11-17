@@ -1,0 +1,24 @@
+import { Router } from 'express';
+import * as productController from '../controllers/product.controller';
+import { authenticate, requireRole } from '../middleware/authenticate';
+import { validate } from '../middleware/validate';
+import { createProductSchema, updateProductSchema } from '../validators/product.validator';
+
+export const productRouter = Router();
+
+// Every product route needs login.
+productRouter.use(authenticate);
+
+// Staff can look up products (they make bills). Only the owner can change the catalogue,
+// because prices and stock are the owner's money.
+productRouter.get('/', productController.list);
+productRouter.get('/:id', productController.get);
+productRouter.post('/', requireRole('owner'), validate(createProductSchema), productController.create);
+productRouter.patch(
+  '/:id',
+  requireRole('owner'),
+  validate(updateProductSchema),
+  productController.update,
+);
+// DELETE archives the product (soft delete); see product.service.
+productRouter.delete('/:id', requireRole('owner'), productController.archive);
