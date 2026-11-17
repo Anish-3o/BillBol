@@ -1,0 +1,9 @@
+# Keep LF line endings in the repository and in every checkout, on every OS.
+# Matches .editorconfig (end_of_line = lf) and Prettier's default, and overrides a
+# machine-wide core.autocrlf=true for this repo only.
+* text=auto eol=lf
+
+# Binary files: never touch.
+*.png binary
+*.jpg binary
+*.ico binary
