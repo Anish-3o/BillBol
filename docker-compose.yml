@@ -1,0 +1,64 @@
+# Local development services.
+#   docker compose up -d                     -> starts MongoDB + Redis only (use this day to day)
+#   docker compose --profile full up --build -> also runs the API inside Docker
+services:
+  mongo:
+    image: mongo:7
+    container_name: billbol-mongo
+    restart: unless-stopped
+    # A single-node replica set instead of a standalone server, because MongoDB transactions
+    # only work on replica sets. Billing needs them: the bill, its number and the stock
+    # changes must be saved together or not at all.
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    # Also does the one-time setup: if the replica set is not initialised yet, initialise it.
+    # The member is "localhost:27017" so apps on your machine can connect with a plain
+    # mongodb://localhost:27017 URL.
+    healthcheck:
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - "try { rs.status() } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] }) }"
+      interval: 5s
+      timeout: 10s
+      retries: 12
+      start_period: 5s
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: billbol-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  api:
+    build: ./server
+    container_name: billbol-api
+    profiles: ["full"]
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "4000:4000"
+    # Secrets (JWT_*, LLM_API_KEY) come from server/.env. The values under "environment"
+    # override it with the Docker network addresses of mongo and redis.
+    env_file:
+      - ./server/.env
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      # directConnection: inside Docker the replica set's "localhost:27017" member name would
+      # point at this container itself, so connect straight to the mongo service instead.
+      MONGO_URI: mongodb://mongo:27017/billbol?directConnection=true
+      REDIS_URL: redis://redis:6379
+      CLIENT_URL: http://localhost:5173
+
+volumes:
+  mongo-data:

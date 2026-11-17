@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Builds and coverage
+dist/
+build/
+coverage/
+
+# Environment files - never commit secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Python (ml-service)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Datasets and trained models (too large for git)
+*.csv
+*.joblib
+*.pkl
+
+# Editors and OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
