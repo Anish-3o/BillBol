@@ -126,7 +126,7 @@ export default function RegisterPage() {
           hint="At least 8 characters."
           error={fieldError('password')}
         />
-        <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
+        <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={submitting}>
           {submitting ? 'Creating your shop…' : 'Create shop'}
         </button>
       </form>

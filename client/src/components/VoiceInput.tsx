@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
+import { Icon } from './Icon';
 
 const LANGUAGES = [
   { code: 'hi-IN', label: 'हिंदी / Hinglish' },
@@ -52,20 +53,26 @@ export function VoiceInput({ onTranscript, busy }: Props) {
   return (
     <section className="voice-card" aria-label="Voice order">
       <div className="voice-row">
-        {speech.supported ? (
+        {speech.supported && (
           <button
             type="button"
             className={speech.listening ? 'mic mic-on' : 'mic'}
             onClick={speech.listening ? speech.stop : () => speech.start(language)}
             disabled={busy}
             aria-pressed={speech.listening}
+            aria-label={speech.listening ? 'Done speaking' : 'Speak the order'}
           >
-            <span aria-hidden="true">{speech.listening ? '■' : '🎤'}</span>
-            {speech.listening ? 'Done' : 'Speak order'}
+            <Icon name={speech.listening ? 'stop' : 'mic'} size={28} />
           </button>
-        ) : (
-          <p className="voice-note">Voice works in Chrome or Edge. You can type the order below.</p>
         )}
+        <div className="voice-copy">
+          <strong>{speech.listening ? 'Listening… tap when done' : busy ? 'Understanding the order…' : 'Speak the order'}</strong>
+          <span>
+            {speech.supported
+              ? 'e.g. "do kilo cheeni, ek Tata namak aur teen Maggi"'
+              : 'Voice works in Chrome or Edge. Type the order below.'}
+          </span>
+        </div>
         <select
           className="voice-lang"
           aria-label="Language the customer speaks"
@@ -83,17 +90,12 @@ export function VoiceInput({ onTranscript, busy }: Props) {
 
       {speech.listening && (
         <p className="voice-live" aria-live="polite">
-          {speech.interim || 'Listening… e.g. "do kilo cheeni aur ek Lux sabun". Tap Done when finished.'}
-        </p>
-      )}
-      {busy && (
-        <p className="voice-live" aria-live="polite">
-          Understanding the order…
+          {speech.interim || '…'}
         </p>
       )}
       {speech.error && <p className="field-error">{speech.error}</p>}
 
-      {/* Also the fallback for browsers without speech recognition, and handy for testing. */}
+      {/* Also the fallback for browsers without speech recognition, and handy for demos. */}
       <details className="voice-type" open={!speech.supported || undefined}>
         <summary>Type the order instead</summary>
         <form onSubmit={submitTyped}>
@@ -104,7 +106,7 @@ export function VoiceInput({ onTranscript, busy }: Props) {
             onChange={(e) => setTyped(e.target.value)}
             maxLength={500}
           />
-          <button type="submit" className="btn btn-secondary" disabled={busy || !typed.trim()}>
+          <button type="submit" className="btn btn-light" disabled={busy || !typed.trim()}>
             Add
           </button>
         </form>

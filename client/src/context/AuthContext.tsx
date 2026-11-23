@@ -49,6 +49,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setState(LOGGED_OUT);
         }
       },
+      // After the owner edits shop details, every screen (receipts, UPI QR) uses the new ones.
+      setTenant(tenant) {
+        setState((s) => (s.session ? { ...s, session: { ...s.session, tenant } } : s));
+      },
     }),
     [state],
   );

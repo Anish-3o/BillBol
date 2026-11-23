@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { ApiError, toFormErrors, type FormErrors } from '../api/client';
 import { archiveProduct, createProduct, getProduct, updateProduct } from '../api/products';
 import { Field, FormAlert, SelectField } from '../components/FormField';
@@ -54,6 +54,9 @@ function ProductEditor({ id }: { id: string | undefined }) {
 
 function ProductForm({ product }: { product: Product | null }) {
   const navigate = useNavigate();
+  // "Add as new product" on the billing screen opens /products/new?barcode=<the unknown code>.
+  const [params] = useSearchParams();
+  const scannedBarcode = params.get('barcode') ?? '';
   const [errors, setErrors] = useState<FormErrors>(NO_ERRORS);
   const [busy, setBusy] = useState(false);
   useFocusFirstError(errors);
@@ -91,6 +94,7 @@ function ProductForm({ product }: { product: Product | null }) {
       mrpPaise,
       gstRate: Number(text('gstRate')),
       hsn: text('hsn') || null,
+      barcode: text('barcode') || null,
       stockMilli: stockMilli!,
       lowStockMilli: lowStockMilli!,
     };
@@ -213,6 +217,19 @@ function ProductForm({ product }: { product: Product | null }) {
             error={err('hsn')}
           />
         </div>
+
+        <Field
+          label="Barcode (optional)"
+          name="barcode"
+          maxLength={32}
+          autoComplete="off"
+          placeholder="Click here, then scan the packet"
+          hint="Scan the packet with your barcode scanner, or type the number under the bars."
+          defaultValue={product?.barcode ?? scannedBarcode}
+          error={err('barcode')}
+          // A scanner presses Enter after the code; here that must not submit the half-filled form.
+          onKeyDown={(e) => e.key === 'Enter' && e.preventDefault()}
+        />
 
         <div className="field-row">
           <Field

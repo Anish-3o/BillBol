@@ -34,3 +34,10 @@ export function paiseToInput(paise: number): string {
   const rest = paise % 100;
   return rest === 0 ? String(rupees) : `${rupees}.${String(rest).padStart(2, '0')}`;
 }
+
+// How a customer's udhaar balance reads: positive = owes the shop, negative = paid in advance.
+export function describeBalance(balancePaise: number): { text: string; tone: 'owes' | 'advance' | 'clear' } {
+  if (balancePaise > 0) return { text: `Owes ${formatPaise(balancePaise)}`, tone: 'owes' };
+  if (balancePaise < 0) return { text: `Advance ${formatPaise(-balancePaise)}`, tone: 'advance' };
+  return { text: 'No dues', tone: 'clear' };
+}

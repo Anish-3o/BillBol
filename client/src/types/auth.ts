@@ -18,6 +18,8 @@ export type Tenant = {
   phone: string;
   state: string;
   gstin: string | null;
+  address: string | null;
+  upiId: string | null;
 };
 
 // What /auth/me, /auth/login, /auth/register and /auth/refresh all return.

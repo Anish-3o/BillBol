@@ -12,6 +12,7 @@ export type Product = {
   mrpPaise: number | null;
   gstRate: number;
   hsn: string | null;
+  barcode: string | null;
   stockMilli: number;
   lowStockMilli: number;
   isActive: boolean;
@@ -29,6 +30,7 @@ export type ProductInput = {
   mrpPaise: number | null;
   gstRate: number;
   hsn: string | null;
+  barcode: string | null;
   stockMilli: number;
   lowStockMilli: number;
 };

@@ -18,3 +18,7 @@ export const updateProduct = (id: string, input: Partial<ProductInput>) =>
 
 // The server archives (soft-deletes) the product.
 export const archiveProduct = (id: string) => api<Product>(`/products/${id}`, 'DELETE');
+
+// What the barcode scanner read -> the shop's product (404 ApiError if no product has it).
+export const findProductByBarcode = (code: string) =>
+  api<Product>(`/products/barcode/${encodeURIComponent(code)}`);
