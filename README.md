@@ -3,25 +3,29 @@
 **Bolo, aur bill taiyaar.** Just speak, and the bill is ready.
 
 BillBol is an AI-powered shop manager for Indian kirana stores.
-Shopkeepers create bills by voice in Hindi, Hinglish or Marathi,
-track udhaar, and get daily insights from a built-in AI assistant.
+Shopkeepers create bills by voice in Hindi, Hinglish or Marathi, or by scanning barcodes,
+print the bill on any printer, track udhaar, and get daily insights from a built-in AI assistant.
 
 > 🚧 Work in progress. Building in public, one feature at a time.
 
-## Planned features
+## Features
 
-- 🎙️ Voice billing in Hindi / Hinglish / Marathi
-- 🤖 AI assistant with morning briefings and sales insights
+- 🎙️ Voice billing in Hindi / Hinglish / Marathi ("Hey Ramu, do kilo cheeni aur teen Maggi")
+- 🔫 Barcode billing with **any** USB or Bluetooth scanner, or the phone's camera
+- 🖨️ Print on any printer: 58 mm / 80 mm thermal receipts or A4 (Save as PDF for a PDF invoice)
+- 📲 UPI "scan to pay" QR with the exact amount: at the counter, on udhaar receipts, in the khata
+- ↩️ Cancel or correct a bill: stock goes back, udhaar is reversed, the record stays
+- 📦 Receive goods by scanning: deliveries go into stock with a record of who counted them
+- ⏸️ Hold a bill to serve the next customer, and a cash-change helper ("return ₹130")
+- 👥 Staff logins set up by the owner, with limits on what staff can cancel
+- 🤖 AI assistant with morning briefings, sales Q&A and smart restock suggestions
 - 📒 Udhaar ledger with WhatsApp reminders
-- 🧾 GST invoices with PDF
-- 🏆 Goals, badges and staff leaderboard
-- 🎁 Monthly "Business Wrapped" recap
-- 📈 Sales forecasting and festival alerts
+- 🧾 GST-ready bills (tax invoice / bill of supply, CGST + SGST)
 - 🏪 Multi-tenant: many shops on one deployment, each seeing only its own data
 
 ## Tech stack
 
-React · TypeScript · Vite · Node.js · Express · MongoDB · Redis · BullMQ · Python · FastAPI · Docker · GitHub Actions
+React · TypeScript · Vite · Node.js · Express · MongoDB · Docker · GitHub Actions
 
 ## Project structure
 
@@ -29,7 +33,6 @@ React · TypeScript · Vite · Node.js · Express · MongoDB · Redis · BullMQ 
 billbol/
 ├── client/         React + Vite + TypeScript web app
 ├── server/         Express + TypeScript API
-├── ml-service/     Python FastAPI forecasting service (coming later)
 ├── docs/           Architecture diagrams and screenshots
 └── docker-compose.yml
 ```
@@ -39,8 +42,8 @@ billbol/
 **You need:** Node.js 22+, Docker Desktop
 
 ```bash
-git clone https://github.com/<your-username>/billbol.git
-cd billbol
+git clone https://github.com/Anish-3o/BillBol.git
+cd BillBol
 
 # 1. Install everything (root, server, client)
 npm run setup
@@ -50,9 +53,11 @@ cp server/.env.example server/.env
 #    Then set JWT_ACCESS_SECRET and JWT_REFRESH_SECRET in server/.env to two different
 #    random values (the API will not start without them). Generate each with:
 #    node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
-#    Optional: set LLM_API_KEY (an Anthropic API key) to turn on voice billing.
+#    Optional: set LLM_API_KEY (an Anthropic API key) to use Claude for voice billing, the
+#    "Hey Ramu" agent, the morning briefing and reminders. Without it everything still
+#    works on the offline rule-based parser and templates.
 
-# 3. Start MongoDB and Redis
+# 3. Start MongoDB
 #    MongoDB runs as a single-node replica set (billing uses transactions);
 #    it sets itself up on first start, give it ~10 seconds.
 docker compose up -d
@@ -64,6 +69,69 @@ npm run dev
 - Web app: http://localhost:5173
 - API health check: http://localhost:4000/api/health
 
+### Demo shop
+
+`npm run seed:demo` creates "Sharma Kirana Store" with 26 products, 8 udhaar customers and a
+month of realistic bills (re-running it rebuilds only the demo shop). Then open the web app
+and press **Try the live demo**, or log in with `9000000001` / `demo@1234`.
+
+### "Hey Ramu" voice assistant
+
+Open the assistant (floating button, or the mic in the phone tab bar) and either tap the mic,
+type, or turn on **Hands-free mode** and say *"Hey Ramu, do kilo cheeni aur teen Maggi"*.
+Ramu drafts the bill, reads the total back, and saves it only when you say *"haan"* (or tap
+Confirm). Then Ramu asks *"Print karoon?"*: say *"haan"* and the bill prints. *"Pichhla bill
+print karo"* reprints the last one. Voice needs Chrome or Edge.
+
+### Barcode scanner
+
+Plug in any USB barcode scanner (or pair a Bluetooth one) and open **New bill**. That's it:
+no driver, no setup. Scanners act as a keyboard that types the code very fast and presses
+Enter; BillBol tells a scan from human typing by that speed. Each scan adds one unit, so
+scanning three Maggi packets gives quantity 3. An unknown code beeps, and the owner can add it
+as a new product with the barcode already filled in. On a phone, **Scan with camera** uses
+the built-in barcode detector (Chrome on Android, Safari 17+ on iOS).
+
+To give a product its barcode: **Products → Edit**, click the Barcode field, scan the packet.
+The demo shop's packaged products have in-store codes (`200…`); type one into the search box
+on New bill to try it without a scanner.
+
+### Printing
+
+**New bill** has *Print after saving* (on by default) and a paper size: 58 mm or 80 mm thermal
+receipt, or A4. Settings are kept per device, because the printer belongs to the counter.
+Any printer installed on the computer or phone works: thermal receipt printers (TVS, Epson,
+Retsol…) install as normal printers. Press **F9** or **Ctrl+Enter** to save and print without
+touching the mouse.
+
+For one-tap printing with no print dialog, start Chrome or Edge with `--kiosk-printing`
+(add it to the shortcut's target) and set the receipt printer as the default printer.
+
+### Settings, UPI and staff (owner)
+
+**Settings** holds the shop's details as printed on receipts (name, address, phone, GSTIN) and
+its **UPI ID**. With a UPI ID, choosing *UPI* on New bill shows a QR with the exact amount, the
+customer scans it with any UPI app, and the bill is saved once the money arrives. Udhaar
+receipts print a "scan to pay" QR, and each customer's khata shows one for their balance.
+Settings also has a ₹1 test QR to check the money reaches the right account.
+
+Owners add **staff logins** there (name, mobile, starting password). Staff can bill, receive
+goods and keep the khata, but not change prices, products or settings.
+
+### Fixing a wrong bill
+
+Bills are never edited. Open the bill and choose **Cancel or correct this bill**, pick a
+reason, then either *Cancel bill* or *Cancel & make a corrected bill* (a new bill opens with
+the same items, ready to fix). Stock goes back and an udhaar bill is reversed in the khata;
+the cancelled bill stays in the list, marked, and no longer counts in sales. The owner can
+cancel any bill; staff can cancel only their own, within 10 minutes.
+
+### Receiving goods
+
+**Receive goods** (in the menu, on Products, and on the dashboard's restock card): scan each
+packet of a delivery or search and type the count (+12 / +24 for cartons), add the supplier,
+and save. Stock goes up and the delivery is recorded with who counted it.
+
 ## Scripts
 
 | Command | What it does |
@@ -73,6 +141,7 @@ npm run dev
 | `npm run lint` | Lints server and client |
 | `npm test` | Runs server tests (needs MongoDB running; uses separate `billbol_test_*` databases) |
 | `npm run seed:products --prefix server -- <owner phone>` | Adds a sample kirana catalogue (26 products) to that owner's shop |
+| `npm run seed:demo` | Creates (or rebuilds) the demo shop with a month of history |
 | `npm run format` | Formats all files with Prettier |
 
 ## Roadmap
@@ -80,9 +149,16 @@ npm run dev
 - [x] Project skeleton, Docker, CI
 - [x] Week 1: Login, refresh tokens, shops (multi-tenant)
 - [x] Week 2: Products, manual billing, stock
-- [ ] Week 3: GST invoices + PDF, udhaar ledger
-- [ ] Week 4: Roles, dashboard, audit log
+- [x] Week 3: GST bills (tax invoice / bill of supply), udhaar ledger
+- [x] Week 4: Owner/staff roles, dashboard
 - [x] Week 5: Voice billing (built early; needs `LLM_API_KEY`)
-- [ ] Week 6: AI assistant, morning briefing, WhatsApp reminders
-- [ ] Week 7: Badges, leaderboard, Business Wrapped
-- [ ] Week 8: Festival mode, forecasting, deploy
+- [x] Week 6: AI assistant ("Hey Ramu" agent), morning briefing, WhatsApp reminder drafts, smart restock
+- [x] Week 7: Barcode billing (any scanner + phone camera), receipt printing (58/80 mm, A4)
+- [x] Week 8: Bill cancellation and correction, UPI QR, receiving goods, staff logins, hold bill
+- [ ] Next: offline mode (PWA), deploy
+
+**Dropped, on purpose:** badges, staff leaderboard and "Business Wrapped" (a kirana has one to
+three people at the counter; nobody needs to compete), the Python forecasting service and
+festival mode (for a few hundred products, the sales-velocity restock suggestions already in
+the API give most of the value without a second language, service and deployment), and a
+server-side PDF generator (printing the A4 bill to "Save as PDF" gives the same PDF).
