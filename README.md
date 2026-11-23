@@ -34,6 +34,8 @@ billbol/
 ├── client/         React + Vite + TypeScript web app
 ├── server/         Express + TypeScript API
 ├── docs/           Architecture diagrams and screenshots
+├── api/            Vercel serverless entry (runs the Express API)
+├── vercel.json     Vercel build and routing
 └── docker-compose.yml
 ```
 
@@ -131,6 +133,36 @@ cancel any bill; staff can cancel only their own, within 10 minutes.
 **Receive goods** (in the menu, on Products, and on the dashboard's restock card): scan each
 packet of a delivery or search and type the count (+12 / +24 for cartons), add the supplier,
 and save. Stock goes up and the delivery is recorded with who counted it.
+
+## Deploy (Vercel + MongoDB Atlas)
+
+The web app and the API deploy together as **one Vercel project**: Vercel serves the built
+React app and runs the Express API as a serverless function at `/api` (see `vercel.json` and
+`api/index.ts`). One domain for both means the httpOnly login cookies just work, with no CORS
+setup.
+
+1. **Database:** create a free **M0** cluster on [MongoDB Atlas](https://www.mongodb.com/atlas)
+   (region: Mumbai, to sit next to Vercel's `bom1` region). Add a database user, and under
+   *Network Access* allow `0.0.0.0/0` (Vercel has no fixed IP addresses). Copy the connection
+   string and put the database name in it: `mongodb+srv://USER:PASS@CLUSTER.mongodb.net/billbol?retryWrites=true&w=majority`.
+   Atlas clusters are replica sets, so billing transactions work.
+2. **Vercel:** *Add New → Project*, import the GitHub repo, keep the root directory as `./`
+   (settings come from `vercel.json`) and add these environment variables:
+
+   | Variable | Value |
+   |---|---|
+   | `MONGO_URI` | the Atlas connection string |
+   | `JWT_ACCESS_SECRET` | a new random value (not your local one) |
+   | `JWT_REFRESH_SECRET` | another new random value |
+   | `CLIENT_URL` | your site URL, e.g. `https://billbol.vercel.app` |
+   | `LLM_API_KEY` | optional: Anthropic API key for the AI features |
+
+   Do **not** set `NODE_ENV`: the API switches to production by itself on Vercel, and
+   `NODE_ENV=production` during the build would make npm skip the build tools.
+3. **Demo data:** from your computer, run the seed against Atlas once:
+   `MONGO_URI="<atlas connection string>" npm run seed:demo` (Git Bash).
+
+Every push to `main` redeploys. Check `https://<your-site>/api/health` shows `"db": "connected"`.
 
 ## Scripts
 

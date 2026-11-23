@@ -5,7 +5,12 @@ import { z } from 'zod';
 // If something is missing or wrong, the server refuses to start with a clear message.
 const envSchema = z
   .object({
-    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    // On Vercel (which sets VERCEL=1) the default is production, so cookies are secure and
+    // error responses never include stack traces. NODE_ENV is deliberately not set in the
+    // Vercel dashboard: during the build it would make npm skip devDependencies (Vite, tsc).
+    NODE_ENV: z
+      .enum(['development', 'test', 'production'])
+      .default(process.env.VERCEL ? 'production' : 'development'),
     PORT: z.coerce.number().int().positive().default(4000),
     MONGO_URI: z.string().min(1).default('mongodb://localhost:27017/billbol'),
     CLIENT_URL: z.string().url().default('http://localhost:5173'),
