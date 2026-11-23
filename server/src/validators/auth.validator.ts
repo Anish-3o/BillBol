@@ -12,11 +12,11 @@ export const phoneSchema = z
 export const emailSchema = z.string().trim().toLowerCase().email('Enter a valid email');
 
 // GSTIN format: 2-digit state code + 10-char PAN + entity number + 'Z' + check character.
-const GSTIN_REGEX = /^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+export const GSTIN_REGEX = /^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
 
 // bcrypt only uses the first 72 bytes of a password; anything longer would be silently
 // ignored, so we cap it instead of pretending it adds security.
-const passwordSchema = z
+export const passwordSchema = z
   .string()
   .min(8, 'Password must be at least 8 characters')
   .max(72, 'Password must be at most 72 characters');

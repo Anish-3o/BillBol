@@ -18,7 +18,7 @@ import { createProduct } from '../services/product.service';
 import { phoneSchema } from '../validators/auth.validator';
 import { createProductSchema } from '../validators/product.validator';
 
-type Seed = {
+export type Seed = {
   name: string;
   localName: string;
   unit: string;
@@ -30,7 +30,7 @@ type Seed = {
   lowStock: number;
 };
 
-const CATALOGUE: Seed[] = [
+export const CATALOGUE: Seed[] = [
   // Loose staples, sold by weight
   { name: 'Basmati Rice (loose)', localName: 'चावल', unit: 'kg', price: 110, gstRate: 0, hsn: '1006', stock: 50, lowStock: 10 },
   { name: 'Toor Dal (loose)', localName: 'तूर दाल', unit: 'kg', price: 160, gstRate: 0, hsn: '0713', stock: 30, lowStock: 5 },
@@ -66,8 +66,23 @@ const CATALOGUE: Seed[] = [
 
 // Rupees/units to paise/thousandths. Math.round guards against float noise (e.g. 0.1 * 3)
 // in these hand-written constants; real user input is converted exactly in the client.
-const toPaise = (rupees: number) => Math.round(rupees * 100);
-const toMilli = (qty: number) => Math.round(qty * 1000);
+export const toPaise = (rupees: number) => Math.round(rupees * 100);
+export const toMilli = (qty: number) => Math.round(qty * 1000);
+
+// Demo barcodes for packaged goods (loose kg/litre goods have none). They use the GS1 prefix
+// 200, which is reserved for a shop's own in-store labels, so they can never clash with a real
+// brand's code. Real packets carry their maker's EAN; the owner scans it into the product form.
+export function seedBarcode(seed: Seed, index: number): string | null {
+  if (seed.unit === 'kg' || seed.unit === 'litre') return null;
+  return ean13(`200${String(index + 1).padStart(9, '0')}`);
+}
+
+// EAN-13 check digit: weights 1,3,1,3... over the first 12 digits, then round up to a multiple
+// of 10. Scanners reject a code whose check digit is wrong, so printed demo labels need it.
+export function ean13(first12: string): string {
+  const sum = [...first12].reduce((s, d, i) => s + Number(d) * (i % 2 === 0 ? 1 : 3), 0);
+  return first12 + ((10 - (sum % 10)) % 10);
+}
 
 async function main(): Promise<void> {
   const phoneArg = process.argv[2];
@@ -90,7 +105,7 @@ async function main(): Promise<void> {
 
     let added = 0;
     let skipped = 0;
-    for (const seed of CATALOGUE) {
+    for (const [index, seed] of CATALOGUE.entries()) {
       const exists = await Product.exists({ tenantId, name: seed.name, isActive: true }).collation(
         CASE_INSENSITIVE,
       );
@@ -106,6 +121,7 @@ async function main(): Promise<void> {
         mrpPaise: seed.mrp === undefined ? null : toPaise(seed.mrp),
         gstRate: seed.gstRate,
         hsn: seed.hsn,
+        barcode: seedBarcode(seed, index),
         stockMilli: toMilli(seed.stock),
         lowStockMilli: toMilli(seed.lowStock),
       });
@@ -118,7 +134,7 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch(async (err) => {
+if (require.main === module) main().catch(async (err) => {
   console.error('❌ Seeding failed:', err);
   await mongoose.disconnect();
   process.exit(1);

@@ -1,4 +1,5 @@
 import request from 'supertest';
+import { isClaudeConfigured } from '../src/ai/claude';
 import { extractVoiceOrder, type CatalogueEntry } from '../src/ai/voiceOrder';
 import { createApp } from '../src/app';
 import { Bill } from '../src/models/Bill';
@@ -14,6 +15,13 @@ jest.mock('../src/ai/voiceOrder', () => ({
   extractVoiceOrder: jest.fn(),
 }));
 const extract = jest.mocked(extractVoiceOrder);
+// The test env has no API key (so the offline parser would be used); pretend Claude is set
+// up, except in the tests that check the offline fallback.
+jest.mock('../src/ai/claude', () => ({
+  ...jest.requireActual('../src/ai/claude'),
+  isClaudeConfigured: jest.fn(() => true),
+}));
+const configured = jest.mocked(isClaudeConfigured);
 
 const app = createApp();
 let shop: Awaited<ReturnType<typeof registerShop>>;
@@ -137,13 +145,37 @@ describe('POST /api/bills/voice-draft', () => {
     expect(extract).not.toHaveBeenCalled();
   });
 
-  it('passes on a clear error when voice billing is not set up', async () => {
-    extract.mockRejectedValue(new AppError(503, 'Voice billing is not set up yet: add LLM_API_KEY to server/.env'));
+  it('falls back to the offline parser when Claude is unavailable', async () => {
+    extract.mockRejectedValue(new AppError(503, 'Could not reach the voice service. Check the internet connection.'));
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const res = await draft('dedh kilo cheeni aur do sabun');
+
+    expect(res.status).toBe(200);
+    expect(res.body.engine).toBe('local');
+    expect(res.body.items.map((i: { product: { name: string }; quantityMilli: number }) => [i.product.name, i.quantityMilli])).toEqual([
+      ['Sugar (loose)', 1500],
+      ['Lux Soap 100g', 2000],
+    ]);
+  });
+
+  it('uses the offline parser straight away when no API key is set', async () => {
+    configured.mockReturnValueOnce(false);
 
     const res = await draft('ek kilo cheeni');
 
-    expect(res.status).toBe(503);
-    expect(res.body.error.message).toMatch(/LLM_API_KEY/);
+    expect(res.status).toBe(200);
+    expect(res.body.engine).toBe('local');
+    expect(res.body.items[0].quantityMilli).toBe(1000);
+    expect(extract).not.toHaveBeenCalled();
+  });
+
+  it('does not hide a refusal behind the offline parser', async () => {
+    extract.mockRejectedValue(new AppError(422, 'Could not understand that order. Please add the items by hand.'));
+
+    const res = await draft('ek kilo cheeni');
+
+    expect(res.status).toBe(422);
   });
 
   it('validates the transcript', async () => {

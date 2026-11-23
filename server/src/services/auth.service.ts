@@ -20,7 +20,7 @@ import {
 
 // Cost factor 12 takes roughly 200-300 ms per hash: slow enough to make brute-forcing a
 // stolen hash expensive, fast enough for a login. Tests use the minimum (4) to stay quick.
-const SALT_ROUNDS = env.NODE_ENV === 'test' ? 4 : 12;
+export const SALT_ROUNDS = env.NODE_ENV === 'test' ? 4 : 12;
 
 // The same message for "no such user" and "wrong password", so the login form
 // cannot be used to discover which phone numbers have accounts.
@@ -44,6 +44,8 @@ export type PublicTenant = {
   phone: string;
   state: string;
   gstin: string | null;
+  address: string | null; // printed on receipts
+  upiId: string | null; // for "scan to pay" QR codes
 };
 
 export type AuthTokens = { accessToken: string; refreshToken: string };
@@ -220,7 +222,7 @@ function toPublicUser(user: UserDoc): PublicUser {
   };
 }
 
-function toPublicTenant(tenant: TenantDoc): PublicTenant {
+export function toPublicTenant(tenant: TenantDoc): PublicTenant {
   return {
     id: tenant.id,
     name: tenant.name,
@@ -228,6 +230,8 @@ function toPublicTenant(tenant: TenantDoc): PublicTenant {
     phone: tenant.phone,
     state: tenant.state,
     gstin: tenant.gstin ?? null,
+    address: tenant.address ?? null,
+    upiId: tenant.upiId ?? null,
   };
 }
 

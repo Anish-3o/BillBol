@@ -30,6 +30,13 @@ const hsn = z
   .trim()
   .regex(/^\d{4}(\d{2}){0,2}$/, 'HSN code must be 4, 6 or 8 digits');
 
+// What a scanner types: 8 digits (EAN-8), 12 (UPC-A), 13 (EAN-13), or a shop's own Code-128
+// label. Letters, digits and dashes only, so a stray space cannot make a "different" code.
+export const barcodeSchema = z
+  .string()
+  .trim()
+  .regex(/^[A-Za-z0-9-]{4,32}$/, 'Barcode must be 4 to 32 letters or digits');
+
 // Optional text fields: "" or null both mean "not set". In an update, null clears the value.
 const emptyToNull = (v: unknown) => (v === '' ? null : v);
 const optional = <T extends z.ZodTypeAny>(schema: T) =>
@@ -45,6 +52,7 @@ const baseFields = {
   mrpPaise: optional(paise),
   gstRate,
   hsn: optional(hsn),
+  barcode: optional(barcodeSchema),
   stockMilli: milli,
   lowStockMilli: milli,
 };

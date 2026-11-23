@@ -8,7 +8,6 @@ const envSchema = z
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().positive().default(4000),
     MONGO_URI: z.string().min(1).default('mongodb://localhost:27017/billbol'),
-    REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
     CLIENT_URL: z.string().url().default('http://localhost:5173'),
     // No defaults on purpose: a guessable fallback secret would let anyone forge tokens.
     // 32+ characters so a short, weak value like "secret" is rejected at startup.

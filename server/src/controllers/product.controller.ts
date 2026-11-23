@@ -10,6 +10,10 @@ import {
 
 // tenantId always comes from getAuth(req), i.e. the signed access token.
 
+export async function byBarcode(req: Request<{ code: string }>, res: Response): Promise<void> {
+  res.json(await productService.findByBarcode(getAuth(req).tenantId, req.params.code));
+}
+
 export async function list(req: Request, res: Response): Promise<void> {
   const query = parseOrThrow(listProductsQuerySchema, req.query);
   res.json(await productService.listProducts(getAuth(req).tenantId, query));

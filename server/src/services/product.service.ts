@@ -8,10 +8,11 @@ import {
 } from '../models/Product';
 import { AppError } from '../utils/AppError';
 import { isObjectIdString } from '../utils/objectId';
-import type {
-  CreateProductInput,
-  ListProductsQuery,
-  UpdateProductInput,
+import {
+  barcodeSchema,
+  type CreateProductInput,
+  type ListProductsQuery,
+  type UpdateProductInput,
 } from '../validators/product.validator';
 
 // Every function takes tenantId as its first argument, always from getAuth(req), never
@@ -26,6 +27,7 @@ export type PublicProduct = {
   mrpPaise: number | null;
   gstRate: number;
   hsn: string | null;
+  barcode: string | null;
   stockMilli: number;
   lowStockMilli: number;
   isActive: boolean;
@@ -43,7 +45,9 @@ export async function listProducts(tenantId: string, query: ListProductsQuery): 
     // Escape the search text before building a regex. Otherwise "(" causes a server error,
     // and a crafted pattern could make the regex engine hang (ReDoS).
     const pattern = new RegExp(escapeRegex(query.q), 'i');
-    filter.$or = [{ name: pattern }, { localName: pattern }];
+    // A barcode matches only exactly: typing "890" must not list every Indian product.
+    // This also means a code typed (or scanned) into any search box finds its product.
+    filter.$or = [{ name: pattern }, { localName: pattern }, { barcode: query.q }];
   }
 
   const [items, total] = await Promise.all([
@@ -56,6 +60,17 @@ export async function listProducts(tenantId: string, query: ListProductsQuery): 
   ]);
 
   return { items: items.map(toPublicProduct), total, page: query.page, limit: query.limit };
+}
+
+// The scanner at the counter. Only active products: an archived product's packet scanned at
+// the counter should say "unknown", not quietly bill something that is no longer sold.
+// An invalid code (spaces, symbols) can never be stored, so it is simply "not found".
+export async function findByBarcode(tenantId: string, code: string): Promise<PublicProduct> {
+  const parsed = barcodeSchema.safeParse(code);
+  if (!parsed.success) throw new AppError(404, 'No product with this barcode');
+  const product = await Product.findOne({ tenantId, barcode: parsed.data, isActive: true });
+  if (!product) throw new AppError(404, 'No product with this barcode');
+  return toPublicProduct(product);
 }
 
 export async function getProduct(tenantId: string, id: string): Promise<PublicProduct> {
@@ -118,6 +133,12 @@ async function checkAndSave(product: ProductDoc): Promise<ProductDoc> {
     return await product.save();
   } catch (err) {
     if (isDuplicateKeyError(err)) {
+      // Two unique indexes can reject the save; keyPattern says which one did.
+      if ((err as { keyPattern?: Record<string, unknown> }).keyPattern?.barcode) {
+        throw new AppError(409, 'Another product already has this barcode', {
+          barcode: ['This barcode is already used by another product'],
+        });
+      }
       throw new AppError(409, 'A product with this name already exists', {
         name: ['You already have a product with this name'],
       });
@@ -136,6 +157,7 @@ export function toPublicProduct(p: ProductDoc): PublicProduct {
     mrpPaise: p.mrpPaise ?? null,
     gstRate: p.gstRate,
     hsn: p.hsn ?? null,
+    barcode: p.barcode ?? null,
     stockMilli: p.stockMilli,
     lowStockMilli: p.lowStockMilli,
     isActive: p.isActive,

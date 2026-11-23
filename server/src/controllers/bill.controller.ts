@@ -5,6 +5,7 @@ import * as billService from '../services/bill.service';
 import { draftBillFromVoice } from '../services/voiceBill.service';
 import {
   listBillsQuerySchema,
+  type CancelBillInput,
   type CreateBillInput,
   type QuoteBillInput,
   type VoiceDraftInput,
@@ -25,6 +26,10 @@ export async function list(req: Request, res: Response): Promise<void> {
 
 export async function get(req: Request<{ id: string }>, res: Response): Promise<void> {
   res.json(await billService.getBill(getAuth(req).tenantId, req.params.id));
+}
+
+export async function cancel(req: Request<{ id: string }>, res: Response): Promise<void> {
+  res.json(await billService.cancelBill(getAuth(req), req.params.id, req.body as CancelBillInput));
 }
 
 export async function voiceDraft(req: Request, res: Response): Promise<void> {

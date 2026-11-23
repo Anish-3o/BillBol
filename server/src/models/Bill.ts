@@ -1,7 +1,9 @@
 import { model, Schema, type HydratedDocument, type InferSchemaType } from 'mongoose';
 import { tenantScoped } from './plugins/tenantScoped';
 
-export const PAYMENT_MODES = ['cash', 'upi', 'card'] as const;
+// 'udhaar': the customer takes the goods now and pays later; the bill is charged to their
+// account in the ledger (see customer.service chargeForBill).
+export const PAYMENT_MODES = ['cash', 'upi', 'card', 'udhaar'] as const;
 export type PaymentMode = (typeof PAYMENT_MODES)[number];
 
 const int = { type: Number, required: true, validate: Number.isInteger };
@@ -26,7 +28,12 @@ const billItemSchema = new Schema(
 );
 
 // Bills are never edited after they are saved; that is what makes them trustworthy records.
-// Mistakes will be corrected by cancelling the bill (a later feature), not by changing it.
+// A mistake is fixed by cancelling the bill (and making a corrected one), not by changing it.
+// A cancelled bill stays in the list with its number: GST rules expect invoice numbers to run
+// without silent gaps, and the owner can see who cancelled what, when and why.
+export const BILL_STATUSES = ['active', 'cancelled'] as const;
+export type BillStatus = (typeof BILL_STATUSES)[number];
+
 const billSchema = new Schema(
   {
     tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
@@ -46,11 +53,25 @@ const billSchema = new Schema(
     cgstPaise: int,
     sgstPaise: int,
     paymentMode: { type: String, enum: PAYMENT_MODES, required: true },
+    // Required for udhaar bills, optional otherwise. The name is a snapshot, like item names.
+    customerId: { type: Schema.Types.ObjectId, ref: 'Customer' },
+    customerName: { type: String },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     createdByName: { type: String, required: true },
+
+    // Older documents (and the demo seed, which writes straight to the collection) have no
+    // status, so queries for sales use `status: { $ne: 'cancelled' }`: missing means active.
+    status: { type: String, enum: BILL_STATUSES, required: true, default: 'active' },
+    cancelledAt: { type: Date },
+    cancelledBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    cancelledByName: { type: String },
+    cancelReason: { type: String },
   },
   { timestamps: true },
 );
+
+// The one filter every sales number must use, so a cancelled bill never counts as a sale.
+export const NOT_CANCELLED = { status: { $ne: 'cancelled' } } as const;
 
 billSchema.plugin(tenantScoped);
 billSchema.index({ tenantId: 1, number: 1 }, { unique: true });

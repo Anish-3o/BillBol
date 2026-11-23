@@ -101,7 +101,7 @@ export async function extractVoiceOrder(
 
 // Turns SDK errors into messages a shopkeeper can act on. Most specific first; the SDK's
 // typed classes are used instead of matching on error text.
-function toAppError(err: unknown): unknown {
+export function toAppError(err: unknown): unknown {
   if (err instanceof AppError) return err;
   if (err instanceof Anthropic.RateLimitError) {
     return new AppError(503, 'Voice billing is busy right now. Try again in a moment.');

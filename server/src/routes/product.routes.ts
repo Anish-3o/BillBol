@@ -12,6 +12,8 @@ productRouter.use(authenticate);
 // Staff can look up products (they make bills). Only the owner can change the catalogue,
 // because prices and stock are the owner's money.
 productRouter.get('/', productController.list);
+// The counter's barcode scanner. Registered before '/:id', which would otherwise match it.
+productRouter.get('/barcode/:code', productController.byBarcode);
 productRouter.get('/:id', productController.get);
 productRouter.post('/', requireRole('owner'), validate(createProductSchema), productController.create);
 productRouter.patch(

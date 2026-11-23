@@ -7,6 +7,9 @@ export const CLAUDE_MODEL = 'claude-opus-5-5';
 
 let client: Anthropic | null = null;
 
+// Lets callers choose the offline path up front instead of waiting for a 503.
+export const isClaudeConfigured = (): boolean => Boolean(env.LLM_API_KEY);
+
 // Created lazily, so the server starts (and tests run) without an API key.
 // The key comes only from env (Rule 5); it is never sent to the browser.
 export function getClaude(): Anthropic {

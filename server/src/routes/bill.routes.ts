@@ -2,7 +2,12 @@ import { Router } from 'express';
 import * as billController from '../controllers/bill.controller';
 import { authenticate } from '../middleware/authenticate';
 import { validate } from '../middleware/validate';
-import { createBillSchema, quoteBillSchema, voiceDraftSchema } from '../validators/bill.validator';
+import {
+  cancelBillSchema,
+  createBillSchema,
+  quoteBillSchema,
+  voiceDraftSchema,
+} from '../validators/bill.validator';
 
 export const billRouter = Router();
 
@@ -17,3 +22,6 @@ billRouter.post('/voice-draft', validate(voiceDraftSchema), billController.voice
 billRouter.post('/', validate(createBillSchema), billController.create);
 billRouter.get('/', billController.list);
 billRouter.get('/:id', billController.get);
+// Cancel (never edit or delete): stock goes back, udhaar is reversed. Who may cancel which
+// bill (owner: any; staff: own, for 10 minutes) is decided in the service, not by role alone.
+billRouter.post('/:id/cancel', validate(cancelBillSchema), billController.cancel);

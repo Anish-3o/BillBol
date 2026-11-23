@@ -1,5 +1,6 @@
 import mongoose, { type ClientSession } from 'mongoose';
-import { Bill, type BillDoc, type PaymentMode } from '../models/Bill';
+import { Bill, type BillDoc, type BillStatus, type PaymentMode } from '../models/Bill';
+import type { Role } from '../models/User';
 import { Counter } from '../models/Counter';
 import { COUNT_UNITS, Product } from '../models/Product';
 import { Tenant } from '../models/Tenant';
@@ -8,10 +9,12 @@ import { AppError } from '../utils/AppError';
 import { isObjectIdString } from '../utils/objectId';
 import type {
   BillItemInput,
+  CancelBillInput,
   CreateBillInput,
   ListBillsQuery,
   QuoteBillInput,
 } from '../validators/bill.validator';
+import { chargeForBill, findCustomerForBill, reverseBillCharge } from './customer.service';
 import { financialYear, lineAmounts, sumAmounts, type LineAmounts, type TaxMode } from './gst';
 
 export type BillLine = LineAmounts & {
@@ -46,8 +49,12 @@ export type PublicBill = LineAmounts & {
   taxMode: TaxMode;
   items: BillLine[];
   paymentMode: PaymentMode;
+  customer: { id: string; name: string } | null;
   createdByName: string;
   createdAt: string;
+  status: BillStatus;
+  cancelled: { at: string; byName: string; reason: string } | null;
+  createdById: string; // lets the app show "Cancel" to staff only on their own bills
 };
 
 export type BillSummary = {
@@ -55,12 +62,19 @@ export type BillSummary = {
   number: string;
   totalPaise: number;
   paymentMode: PaymentMode;
+  customerName: string | null;
   itemCount: number;
   createdByName: string;
   createdAt: string;
+  status: BillStatus;
 };
 
 type Auth = { userId: string; tenantId: string };
+
+// Staff can undo their own mistake while the customer is still at the counter; after that only
+// the owner can cancel. Otherwise a cashier could take cash for a bill, cancel it at night and
+// keep the money: the classic till fraud that cancel permissions exist to stop.
+export const STAFF_CANCEL_WINDOW_MS = 10 * 60_000;
 
 // Works out a bill without saving anything. The counter screen calls this as items are added,
 // so the totals the shopkeeper sees are always the server's numbers (Rule 3); voice billing
@@ -94,6 +108,10 @@ export async function createBill(
     await session.withTransaction(async () => {
       // Read prices and stock inside the transaction, so the bill is based on a consistent view.
       quote = await buildQuote(auth.tenantId, taxMode, input.items, session);
+      // Must be one of this shop's customers (checked here, inside the transaction).
+      const customer = input.customerId
+        ? await findCustomerForBill(auth.tenantId, input.customerId, session)
+        : null;
 
       const counter = await Counter.findOneAndUpdate(
         { tenantId: auth.tenantId, key: counterKey },
@@ -116,12 +134,30 @@ export async function createBill(
             cgstPaise: quote.cgstPaise,
             sgstPaise: quote.sgstPaise,
             paymentMode: input.paymentMode,
+            customerId: customer?._id,
+            customerName: customer?.name,
             createdBy: cashier._id,
             createdByName: cashier.name,
           },
         ],
         { session },
       );
+
+      // Udhaar: write the bill into the customer's khata in the same transaction, so the bill
+      // and the amount the customer owes can never disagree.
+      if (input.paymentMode === 'udhaar') {
+        if (!customer) throw new AppError(400, 'Choose the customer for udhaar');
+        await chargeForBill(
+          {
+            tenantId: auth.tenantId,
+            customerId: customer.id,
+            bill: { id: saved!.id, number: saved!.number, totalPaise: saved!.totalPaise },
+            createdBy: auth.userId,
+            createdByName: cashier.name,
+          },
+          session,
+        );
+      }
 
       // $inc is atomic, so two counters billing sugar at the same moment both subtract.
       // One updateOne per line (not bulkWrite) so the tenantScoped plugin checks each one.
@@ -158,9 +194,11 @@ export async function listBills(
       number: b.number,
       totalPaise: b.totalPaise,
       paymentMode: b.paymentMode,
+      customerName: b.customerName ?? null,
       itemCount: b.items.length,
       createdByName: b.createdByName,
       createdAt: b.createdAt.toISOString(),
+      status: b.status ?? 'active',
     })),
     total,
     page: query.page,
@@ -174,6 +212,81 @@ export async function getBill(tenantId: string, id: string): Promise<PublicBill>
   const bill = await Bill.findOne({ _id: id, tenantId });
   if (!bill) throw new AppError(404, 'Bill not found');
   return toPublicBill(bill);
+}
+
+// Cancels a bill: marks it cancelled, puts the items back in stock and, for udhaar, takes the
+// amount off the customer's khata. One transaction, for the same reason as createBill: a bill
+// marked cancelled whose stock never came back would leave the shelf count wrong for good.
+export async function cancelBill(
+  auth: Auth & { role: Role },
+  id: string,
+  input: CancelBillInput,
+): Promise<PublicBill> {
+  if (!isObjectIdString(id)) throw new AppError(404, 'Bill not found');
+  const user = await User.findOne({ _id: auth.userId, tenantId: auth.tenantId });
+  if (!user) throw new AppError(401, 'Session expired, please log in again');
+
+  const session = await mongoose.startSession();
+  try {
+    let cancelled: BillDoc | null = null;
+    await session.withTransaction(async () => {
+      const bill = await Bill.findOne({ _id: id, tenantId: auth.tenantId }).session(session);
+      if (!bill) throw new AppError(404, 'Bill not found');
+      if (bill.status === 'cancelled') throw new AppError(409, 'This bill is already cancelled');
+
+      if (auth.role !== 'owner') {
+        const own = bill.createdBy.toString() === auth.userId;
+        const recent = Date.now() - bill.createdAt.getTime() <= STAFF_CANCEL_WINDOW_MS;
+        if (!own || !recent) {
+          throw new AppError(403, 'Only the owner can cancel this bill. Staff can cancel their own bills for 10 minutes.');
+        }
+      }
+
+      // The status condition makes a double cancel impossible even if two requests race:
+      // only one update can match a bill that is not cancelled yet (the other gets null).
+      cancelled = await Bill.findOneAndUpdate(
+        { _id: bill._id, tenantId: auth.tenantId, status: { $ne: 'cancelled' } },
+        {
+          $set: {
+            status: 'cancelled',
+            cancelledAt: new Date(),
+            cancelledBy: user._id,
+            cancelledByName: user.name,
+            cancelReason: input.reason,
+          },
+        },
+        { new: true, session },
+      );
+      if (!cancelled) throw new AppError(409, 'This bill is already cancelled');
+
+      // Back on the shelf. No isActive filter: a product archived since the sale still gets
+      // its stock back, so restoring it later shows the right count.
+      for (const item of bill.items) {
+        await Product.updateOne(
+          { _id: item.productId, tenantId: auth.tenantId },
+          { $inc: { stockMilli: item.quantityMilli } },
+          { session },
+        );
+      }
+
+      if (bill.paymentMode === 'udhaar' && bill.customerId) {
+        await reverseBillCharge(
+          {
+            tenantId: auth.tenantId,
+            customerId: bill.customerId.toString(),
+            bill: { id: bill.id, number: bill.number, totalPaise: bill.totalPaise },
+            reason: input.reason,
+            createdBy: auth.userId,
+            createdByName: user.name,
+          },
+          session,
+        );
+      }
+    });
+    return toPublicBill(cancelled!);
+  } finally {
+    await session.endSession();
+  }
 }
 
 async function buildQuote(
@@ -281,7 +394,14 @@ function toPublicBill(b: BillDoc): PublicBill {
     cgstPaise: b.cgstPaise,
     sgstPaise: b.sgstPaise,
     paymentMode: b.paymentMode,
+    customer: b.customerId ? { id: b.customerId.toString(), name: b.customerName ?? '' } : null,
     createdByName: b.createdByName,
     createdAt: b.createdAt.toISOString(),
+    status: b.status ?? 'active',
+    cancelled:
+      b.status === 'cancelled'
+        ? { at: b.cancelledAt!.toISOString(), byName: b.cancelledByName ?? '', reason: b.cancelReason ?? '' }
+        : null,
+    createdById: b.createdBy.toString(),
   };
 }

@@ -17,13 +17,31 @@ export const quoteBillSchema = z.object({
   items: z.array(billItem).min(1, 'Add at least one item').max(200, 'Too many items in one bill'),
 });
 
-export const createBillSchema = quoteBillSchema.extend({
-  paymentMode: z.enum(PAYMENT_MODES),
-});
+export const createBillSchema = quoteBillSchema
+  .extend({
+    paymentMode: z.enum(PAYMENT_MODES),
+    customerId: z.string().regex(/^[a-f\d]{24}$/i, 'Choose a customer').optional(),
+  })
+  // Udhaar has to be written in someone's khata.
+  .superRefine((bill, ctx) => {
+    if (bill.paymentMode === 'udhaar' && !bill.customerId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['customerId'],
+        message: 'Choose the customer for udhaar',
+      });
+    }
+  });
 
 // What the browser's speech recognition heard (or what the shopkeeper typed instead).
 export const voiceDraftSchema = z.object({
   transcript: z.string().trim().min(1, 'Say or type the order first').max(500, 'Too long: say up to a few items at a time'),
+});
+
+// Why a bill was cancelled is required: it is the audit trail the owner reads later. The app
+// offers one-tap reasons ("Wrong item", "Customer returned"), so it costs the cashier nothing.
+export const cancelBillSchema = z.object({
+  reason: z.string().trim().min(1, 'Say why the bill is cancelled').max(200, 'Keep the reason short'),
 });
 
 export const listBillsQuerySchema = z.object({
@@ -36,3 +54,4 @@ export type QuoteBillInput = z.infer<typeof quoteBillSchema>;
 export type CreateBillInput = z.infer<typeof createBillSchema>;
 export type VoiceDraftInput = z.infer<typeof voiceDraftSchema>;
 export type ListBillsQuery = z.infer<typeof listBillsQuerySchema>;
+export type CancelBillInput = z.infer<typeof cancelBillSchema>;

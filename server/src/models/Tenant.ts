@@ -12,6 +12,11 @@ const tenantSchema = new Schema(
     state: { type: String, required: true, trim: true },
     // Optional: many small kirana stores are below the GST registration threshold.
     gstin: { type: String, trim: true, uppercase: true },
+    // Street address, printed under the shop name on receipts. Optional.
+    address: { type: String, trim: true },
+    // The shop's UPI ID ("sharmakirana@okaxis"). With it, the app shows a QR code with the
+    // exact amount, so the customer scans and pays from any UPI app.
+    upiId: { type: String, trim: true, lowercase: true },
   },
   { timestamps: true },
 );

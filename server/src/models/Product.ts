@@ -43,6 +43,9 @@ const productSchema = new Schema(
     gstRate: { type: Number, enum: GST_RATES, required: true },
     // HSN code, needed on GST invoices (Week 3).
     hsn: { type: String, trim: true },
+    // The code under the packet's barcode (EAN-13 / UPC / EAN-8, or the shop's own label).
+    // Optional: loose goods have none. The counter's barcode scanner looks products up by it.
+    barcode: { type: String, trim: true },
 
     // Quantities use the same trick as money: integer thousandths of the unit.
     // 2.5 kg is stored as 2500, 12 pieces as 12000. Billing will subtract from stock
@@ -66,6 +69,15 @@ productSchema.plugin(tenantScoped);
 productSchema.index(
   { tenantId: 1, name: 1 },
   { unique: true, collation: CASE_INSENSITIVE, partialFilterExpression: { isActive: true } },
+);
+
+// One barcode = one product per shop, so a scan is never ambiguous. Partial index: only active
+// products that have a barcode take part, so an archived product's code can be reused and the
+// many products without one do not collide. $type rather than $exists, because clearing the
+// field in an update stores null, and null must not count as a code.
+productSchema.index(
+  { tenantId: 1, barcode: 1 },
+  { unique: true, partialFilterExpression: { isActive: true, barcode: { $type: 'string' } } },
 );
 
 export type ProductAttrs = InferSchemaType<typeof productSchema>;
