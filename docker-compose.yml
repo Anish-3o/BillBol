@@ -1,5 +1,5 @@
 # Local development services.
-#   docker compose up -d                     -> starts MongoDB + Redis only (use this day to day)
+#   docker compose up -d                     -> starts MongoDB only (use this day to day)
 #   docker compose --profile full up --build -> also runs the API inside Docker
 services:
   mongo:
@@ -29,13 +29,6 @@ services:
     volumes:
       - mongo-data:/data/db
 
-  redis:
-    image: redis:7-alpine
-    container_name: billbol-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-
   api:
     build: ./server
     container_name: billbol-api
@@ -43,12 +36,10 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
-      redis:
-        condition: service_started
     ports:
       - "4000:4000"
     # Secrets (JWT_*, LLM_API_KEY) come from server/.env. The values under "environment"
-    # override it with the Docker network addresses of mongo and redis.
+    # override it with the Docker network address of mongo.
     env_file:
       - ./server/.env
     environment:
@@ -57,7 +48,6 @@ services:
       # directConnection: inside Docker the replica set's "localhost:27017" member name would
       # point at this container itself, so connect straight to the mongo service instead.
       MONGO_URI: mongodb://mongo:27017/billbol?directConnection=true
-      REDIS_URL: redis://redis:6379
       CLIENT_URL: http://localhost:5173
 
 volumes:
