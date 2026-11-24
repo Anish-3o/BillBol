@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { RefreshToken } from '../models/RefreshToken';
 import { User, type UserDoc } from '../models/User';
 import { AppError } from '../utils/AppError';

@@ -1,4 +1,6 @@
-import bcrypt from 'bcrypt';
+// bcryptjs (pure JavaScript) instead of bcrypt (native C++ addon): it installs and runs anywhere,
+// including Vercel's serverless functions, with no compiled binary. Hashes are interchangeable.
+import bcrypt from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
 import { env } from '../config/env';
 import { RefreshToken } from '../models/RefreshToken';

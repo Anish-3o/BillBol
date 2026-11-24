@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import type { Express } from 'express';
 import request, { type Response } from 'supertest';
 import { User } from '../../src/models/User';

@@ -164,6 +164,10 @@ setup.
 
 Every push to `main` redeploys. Check `https://<your-site>/api/health` shows `"db": "connected"`.
 
+Two choices keep the serverless function working: `api/tsconfig.json` gives Vercel's
+TypeScript compiler the same settings as the server (it never reads `server/tsconfig.json`), and
+passwords are hashed with `bcryptjs` (pure JavaScript) rather than the native `bcrypt` addon.
+
 ## Scripts
 
 | Command | What it does |
