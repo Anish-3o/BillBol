@@ -87,3 +87,26 @@ export const listProductsQuerySchema = z.object({
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type ListProductsQuery = z.infer<typeof listProductsQuerySchema>;
+
+// Bulk price update, e.g. from a distributor's price list uploaded as CSV. Each row names a
+// product by barcode or by name; the app converts rupees to paise before sending. With
+// apply: false (the default) nothing is saved, so the owner sees a preview first.
+export const priceUpdateSchema = z.object({
+  rows: z
+    .array(
+      z
+        .object({
+          name: z.string().trim().max(100).optional(),
+          barcode: z.string().trim().max(32).optional(),
+          pricePaise: paise,
+          // Left out = keep the MRP already stored; null = clear it.
+          mrpPaise: paise.nullable().optional(),
+        })
+        .refine((r) => Boolean(r.name || r.barcode), { message: 'Each row needs a product name or barcode' }),
+    )
+    .min(1, 'The price list is empty')
+    .max(1000, 'At most 1000 rows at a time'),
+  apply: z.boolean().default(false),
+});
+
+export type PriceUpdateInput = z.infer<typeof priceUpdateSchema>;

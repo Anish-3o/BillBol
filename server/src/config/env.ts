@@ -21,6 +21,12 @@ const envSchema = z
     // Anthropic API key for the AI features (voice billing). Optional: without it the server
     // still runs, and the AI endpoints answer 503 "not set up". An empty value counts as unset.
     LLM_API_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(1).optional()),
+    // Sarvam AI key for natural Indian-language voice: speech-to-text tuned for Hindi, Marathi
+    // and Hinglish, and human-sounding text-to-speech. Optional: without it the app uses the
+    // browser's own (free, less accurate) speech recognition and voices.
+    SARVAM_API_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(1).optional()),
+    // Which Sarvam voice speaks Ramu's replies (a bulbul:v3 speaker name, lowercase).
+    SARVAM_SPEAKER: z.preprocess((v) => (v === '' ? undefined : v), z.string().regex(/^[a-z_]+$/).default('shubh')),
   })
   // Different secrets mean a refresh token can never be accepted as an access token (or vice versa).
   .refine((e) => e.JWT_ACCESS_SECRET !== e.JWT_REFRESH_SECRET, {

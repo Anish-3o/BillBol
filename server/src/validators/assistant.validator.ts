@@ -37,5 +37,11 @@ export const reminderSchema = z.object({
   lang: z.enum(['en', 'hi', 'hinglish', 'mr']).default('hinglish'),
 });
 
+// What the shopkeeper said when Ramu asked for the customer's name or number.
+export const assistantCustomerSchema = z.object({
+  spoken: z.string().trim().min(1, 'Say a name or number').max(200),
+});
+
 export type AssistantInput = z.infer<typeof assistantMessageSchema>;
+export type AssistantCustomerInput = z.infer<typeof assistantCustomerSchema>;
 export type ReminderInput = z.infer<typeof reminderSchema>;

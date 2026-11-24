@@ -81,6 +81,11 @@ describe('detectIntent', () => {
     ['namaste ramu', 'greeting'],
     ['do kilo cheeni', 'order'],
     ['आज की बिक्री', 'sales'],
+    // Questions about a product, not orders and not the reorder list
+    ['maggi hai kya', 'info'],
+    ['tel kitne ka hai', 'info'],
+    ['maggi stock mein hai kya', 'info'],
+    ['चीनी का भाव क्या है', 'info'],
   ])('"%s" -> %s', (text, intent) => {
     expect(detectIntent(text)).toBe(intent);
   });
@@ -110,6 +115,8 @@ describe('Marathi', () => {
     ['उधारी किती बाकी आहे', 'udhaar'],
     ['बिल नको', 'clear'],
     ['नमस्कार रामू', 'greeting'],
+    ['साखरेची किंमत काय आहे', 'info'],
+    ['मॅगी आहे का', 'info'],
   ])('"%s" -> %s', (text, intent) => {
     expect(detectIntent(text)).toBe(intent);
   });

@@ -10,12 +10,15 @@ print the bill on any printer, track udhaar, and get daily insights from a built
 
 ## Features
 
-- 🎙️ Voice billing in Hindi / Hinglish / Marathi ("Hey Ramu, do kilo cheeni aur teen Maggi")
+- 🎙️ Voice billing in Hindi / Hinglish / Marathi ("Hey Ramu, do kilo cheeni aur teen Maggi"): Ramu reads
+  each item back, answers "Maggi hai? Kitne ka?", takes the customer's name and prints on "haan"
+- 🗣️ Optional natural Indian voice (Sarvam AI): far more accurate listening and human-sounding speech
 - 🔫 Barcode billing with **any** USB or Bluetooth scanner, or the phone's camera
 - 🖨️ Print on any printer: 58 mm / 80 mm thermal receipts or A4 (Save as PDF for a PDF invoice)
 - 📲 UPI "scan to pay" QR with the exact amount: at the counter, on udhaar receipts, in the khata
 - ↩️ Cancel or correct a bill: stock goes back, udhaar is reversed, the record stays
 - 📦 Receive goods by scanning: deliveries go into stock with a record of who counted them
+- 💸 Bulk price update from a price list (CSV / Excel), with a preview before anything changes
 - ⏸️ Hold a bill to serve the next customer, and a cash-change helper ("return ₹130")
 - 👥 Staff logins set up by the owner, with limits on what staff can cancel
 - 🤖 AI assistant with morning briefings, sales Q&A and smart restock suggestions
@@ -58,6 +61,8 @@ cp server/.env.example server/.env
 #    Optional: set LLM_API_KEY (an Anthropic API key) to use Claude for voice billing, the
 #    "Hey Ramu" agent, the morning briefing and reminders. Without it everything still
 #    works on the offline rule-based parser and templates.
+#    Optional: set SARVAM_API_KEY (from https://dashboard.sarvam.ai) for Sarvam's Indian-
+#    language speech recognition and natural voices. Without it the browser's speech is used.
 
 # 3. Start MongoDB
 #    MongoDB runs as a single-node replica set (billing uses transactions);
@@ -73,17 +78,37 @@ npm run dev
 
 ### Demo shop
 
-`npm run seed:demo` creates "Sharma Kirana Store" with 26 products, 8 udhaar customers and a
-month of realistic bills (re-running it rebuilds only the demo shop). Then open the web app
+`npm run seed:demo` creates "Sharma Kirana Store" with 50 everyday products, 8 udhaar customers
+and a month of realistic bills (re-running it rebuilds only the demo shop). Then open the web app
 and press **Try the live demo**, or log in with `9000000001` / `demo@1234`.
 
 ### "Hey Ramu" voice assistant
 
 Open the assistant (floating button, or the mic in the phone tab bar) and either tap the mic,
 type, or turn on **Hands-free mode** and say *"Hey Ramu, do kilo cheeni aur teen Maggi"*.
-Ramu drafts the bill, reads the total back, and saves it only when you say *"haan"* (or tap
-Confirm). Then Ramu asks *"Print karoon?"*: say *"haan"* and the bill prints. *"Pichhla bill
-print karo"* reprints the last one. Voice needs Chrome or Edge.
+Ramu works like a billing assistant at the counter:
+
+1. Say items. Ramu reads each one back with its quantity and amount: *"Cheeni 2 kilo ₹92, Maggi
+   3 packet ₹42. Kul ₹134. Aur kuch?"* Ask *"Maggi hai? Kitne ka hai?"* and Ramu answers from
+   the stock and prices in the database.
+2. Say *"bill complete"* (*"bas itna hi"*, *"बिल झालं"*). Ramu asks *"Kuch aur?"*, then the
+   customer's name or mobile number (or *"skip"*). A new customer is added to the khata.
+3. Ramu reads the total and asks *"Bill banake print karun?"*. Say *"haan"*: the bill is saved
+   and printed. Nothing is saved before that yes, and every amount comes from code, never the AI.
+
+*"Pichhla bill print karo"* reprints the last one. With `SARVAM_API_KEY` set, Ramu listens
+through Sarvam (much better at Marathi, Hinglish and brand names) and speaks with a natural
+Indian voice; say *"Ramu"*, wait for the ding, then speak. Without it, the browser's speech is
+used (Chrome or Edge).
+
+### Prices
+
+Prices never update themselves from the internet: no brand publishes an official price feed
+in India, and every shop sets its own selling price. Instead, **Products → Update prices**
+takes a price list: download your current prices as CSV, edit them in Excel (or use a
+distributor's list with *Name/Barcode*, *Price* and optional *MRP* columns), upload, check
+every change, and apply. The demo prices are typical MRPs and should be checked against real
+packs.
 
 ### Barcode scanner
 
@@ -156,6 +181,7 @@ setup.
    | `JWT_REFRESH_SECRET` | another new random value |
    | `CLIENT_URL` | your site URL, e.g. `https://billbol.vercel.app` |
    | `LLM_API_KEY` | optional: Anthropic API key for the AI features |
+   | `SARVAM_API_KEY` | optional: Sarvam AI key for natural Indian-language voice |
 
    Do **not** set `NODE_ENV`: the API switches to production by itself on Vercel, and
    `NODE_ENV=production` during the build would make npm skip the build tools.
@@ -176,7 +202,7 @@ passwords are hashed with `bcryptjs` (pure JavaScript) rather than the native `b
 | `npm run dev` | Runs API and web app together |
 | `npm run lint` | Lints server and client |
 | `npm test` | Runs server tests (needs MongoDB running; uses separate `billbol_test_*` databases) |
-| `npm run seed:products --prefix server -- <owner phone>` | Adds a sample kirana catalogue (26 products) to that owner's shop |
+| `npm run seed:products --prefix server -- <owner phone>` | Adds a sample kirana catalogue (50 products) to that owner's shop |
 | `npm run seed:demo` | Creates (or rebuilds) the demo shop with a month of history |
 | `npm run format` | Formats all files with Prettier |
 

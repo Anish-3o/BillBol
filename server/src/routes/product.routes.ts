@@ -2,7 +2,7 @@ import { Router } from 'express';
 import * as productController from '../controllers/product.controller';
 import { authenticate, requireRole } from '../middleware/authenticate';
 import { validate } from '../middleware/validate';
-import { createProductSchema, updateProductSchema } from '../validators/product.validator';
+import { createProductSchema, priceUpdateSchema, updateProductSchema } from '../validators/product.validator';
 
 export const productRouter = Router();
 
@@ -16,6 +16,8 @@ productRouter.get('/', productController.list);
 productRouter.get('/barcode/:code', productController.byBarcode);
 productRouter.get('/:id', productController.get);
 productRouter.post('/', requireRole('owner'), validate(createProductSchema), productController.create);
+// Bulk price update from an uploaded price list (preview first, then apply).
+productRouter.post('/prices', requireRole('owner'), validate(priceUpdateSchema), productController.updatePrices);
 productRouter.patch(
   '/:id',
   requireRole('owner'),

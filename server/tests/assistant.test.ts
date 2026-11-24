@@ -52,7 +52,7 @@ afterEach(async () => {
 afterAll(closeTestDB);
 
 describe('POST /api/assistant/message (offline brain)', () => {
-  it('drafts a priced bill and asks to confirm, without saving anything', async () => {
+  it('drafts a priced bill, reads back each item, and saves nothing', async () => {
     const res = await say('Ramu do kilo cheeni aur ek sabun');
 
     expect(res.status).toBe(200);
@@ -63,16 +63,17 @@ describe('POST /api/assistant/message (offline brain)', () => {
     ]);
     // ₹92 + ₹38, calculated by the bill service, not by the assistant
     expect(res.body.draft.quote.totalPaise).toBe(13000);
-    expect(res.body.reply).toMatch(/₹130/);
-    expect(res.body.reply).toMatch(/Confirm/);
+    // Each item with its quantity and amount, then the total, then "anything else?"
+    expect(res.body.reply).toBe('Sugar (loose) 2 kilo ₹92, Lux Soap 100g 1 piece ₹38. Kul ₹130. Aur kuch?');
     expect(await Bill.countDocuments({ tenantId: shop.tenantId })).toBe(0);
   });
 
   it('shows Hinglish but speaks Devanagari Hindi, so a Hindi voice reads it', async () => {
     const res = await say('Patil ji ke udhaar mein ek sabun');
 
-    expect(res.body.reply).toBe('1 item, kul ₹38. Suresh Patil ke khate mein. Confirm karun?');
-    expect(res.body.speech).toBe('1 आइटम, कुल ₹38। Suresh Patil के खाते में। कन्फ़र्म करूँ?');
+    expect(res.body.reply).toBe('Lux Soap 100g 1 piece ₹38. Kul ₹38. Suresh Patil ke khate mein. Aur kuch?');
+    // Spoken with the Hindi name and Hindi unit words, so a Hindi voice reads it naturally.
+    expect(res.body.speech).toBe('साबुन 1 पीस ₹38। कुल ₹38। Suresh Patil के खाते में। और कुछ?');
   });
 
   it('adds to the draft the app sends back ("aur ek sabun")', async () => {
@@ -166,7 +167,7 @@ describe('POST /api/assistant/message (Claude agent)', () => {
     await say('hello');
 
     const names = agent.mock.calls[0][0].tools.map((t) => t.name).sort();
-    expect(names).toEqual(['clear_bill_draft', 'get_restock_suggestions', 'get_sales_summary', 'get_udhaar', 'update_bill_draft']);
+    expect(names).toEqual(['check_products', 'clear_bill_draft', 'get_restock_suggestions', 'get_sales_summary', 'get_udhaar', 'update_bill_draft']);
   });
 
   it('drops refs the agent made up', async () => {
@@ -193,7 +194,7 @@ describe('POST /api/assistant/message (Claude agent)', () => {
   });
 
   it('reports whether AI is enabled', async () => {
-    expect((await as(shop.accessToken).get('/api/assistant/status')).body).toEqual({ aiEnabled: true });
+    expect((await as(shop.accessToken).get('/api/assistant/status')).body).toEqual({ aiEnabled: true, voice: 'browser' });
   });
 });
 
@@ -218,14 +219,14 @@ describe('Marathi shop (offline brain)', () => {
     const res = await say('दोन किलो साखर', { language: 'mr' });
 
     expect(lines(res.body.draft)).toEqual([['Sugar (loose)', 2000]]);
-    expect(res.body.reply).toBe('1 वस्तू, एकूण ₹92. कन्फर्म करू?');
+    expect(res.body.reply).toBe('चीनी 2 किलो ₹92. एकूण ₹92. आणखी काही?');
     expect(res.body.speech).toBe(res.body.reply);
   });
 
   it('keeps Hindi for Devanagari when the app language is Hindi', async () => {
     const res = await say('दो किलो चीनी', { language: 'hi' });
 
-    expect(res.body.reply).toBe('1 आइटम, कुल ₹92। कन्फ़र्म करूँ?');
+    expect(res.body.reply).toBe('चीनी 2 किलो ₹92। कुल ₹92। और कुछ?');
   });
 
   it('rejects an unknown language', async () => {
@@ -242,6 +243,109 @@ describe('customer names spoken in Devanagari', () => {
     expect(res.body.draft.customer.name).toBe('Suresh Patil');
     expect(res.body.draft.paymentMode).toBe('udhaar');
     expect(lines(res.body.draft)).toEqual([['Lux Soap 100g', 1000]]);
-    expect(res.body.reply).toBe('1 वस्तू, एकूण ₹38. Suresh Patil च्या खात्यात. कन्फर्म करू?');
+    expect(res.body.reply).toBe('साबुन 1 नग ₹38. एकूण ₹38. Suresh Patil च्या खात्यात. आणखी काही?');
+  });
+});
+
+describe('price and stock questions (offline brain)', () => {
+  beforeEach(() => configured.mockReturnValue(false));
+
+  it('answers "sabun kitne ka hai" with the price and stock from the database', async () => {
+    const res = await say('sabun kitne ka hai');
+
+    expect(res.body.reply).toBe('Lux Soap 100g hai, ₹38 ek piece, 20 piece bacha hai.');
+    expect(res.body.speech).toBe('साबुन है, ₹38 एक पीस, 20 पीस बचा है।');
+    expect(res.body.card.kind).toBe('products');
+    expect(res.body.card.products[0].name).toBe('Lux Soap 100g');
+    // A question is not an order: nothing goes into the bill.
+    expect(res.body.draft).toBeNull();
+  });
+
+  it('says when a product is out of stock', async () => {
+    await as(shop.accessToken).post('/api/products', { name: 'Amul Butter 100g', localName: 'मक्खन', unit: 'piece', pricePaise: 6000, gstRate: 5, stockMilli: 0 });
+
+    const res = await say('butter hai kya');
+
+    expect(res.body.reply).toBe('Amul Butter 100g abhi khatam hai.');
+  });
+
+  it('tells the running total for "kitna hua"', async () => {
+    const res = await say('kitna hua', { draft: { items: [{ productId: soapId, quantityMilli: 2000 }] } });
+
+    expect(res.body.reply).toBe('Abhi tak 1 item, kul ₹76. Aur kuch?');
+    expect(lines(res.body.draft)).toEqual([['Lux Soap 100g', 2000]]);
+  });
+});
+
+describe('Claude agent: reading back and checking stock', () => {
+  beforeEach(() => configured.mockReturnValue(true));
+
+  it('tells the agent exactly which items were added, changed or removed', async () => {
+    let first: { just_added_or_changed: unknown; just_removed: string[] } | undefined;
+    let second: typeof first;
+    agent.mockImplementation(async ({ tools, catalogue }) => {
+      const ref = (name: string) => catalogue.find((c) => c.name === name)!.ref;
+      const update = tools.find((t) => t.name === 'update_bill_draft')!;
+      first = JSON.parse((await update.run({ items: [{ ref: ref('Sugar (loose)'), quantity: 2, heard: 'do kilo cheeni' }, { ref: ref('Lux Soap 100g'), quantity: 1, heard: 'ek sabun' }] })) as string);
+      // Then: one more soap, and the sugar taken out.
+      second = JSON.parse((await update.run({ items: [{ ref: ref('Lux Soap 100g'), quantity: 2, heard: 'do sabun' }] })) as string);
+      return { reply: 'ok', speech: 'ठीक' };
+    });
+
+    await say('do kilo cheeni aur ek sabun');
+
+    expect(first!.just_added_or_changed).toEqual([
+      { name: 'Sugar (loose)', quantity: '2 kg', amount: '₹92' },
+      { name: 'Lux Soap 100g', quantity: '1 piece', amount: '₹38' },
+    ]);
+    expect(second!.just_added_or_changed).toEqual([{ name: 'Lux Soap 100g', quantity: '2 pieces', amount: '₹76' }]);
+    expect(second!.just_removed).toEqual(['Sugar (loose)']);
+  });
+
+  it('answers stock questions with check_products, without touching the bill', async () => {
+    let result: unknown;
+    agent.mockImplementation(async ({ tools, catalogue }) => {
+      const soapRef = catalogue.find((c) => c.name === 'Lux Soap 100g')!.ref;
+      result = JSON.parse((await tools.find((t) => t.name === 'check_products')!.run({ refs: [soapRef, 'P99'] })) as string);
+      return { reply: 'Lux Soap hai, ₹38.', speech: 'लक्स साबुन है, ₹38।' };
+    });
+
+    const res = await say('sabun hai?');
+
+    expect(result).toEqual([{ name: 'Lux Soap 100g', price: '₹38 per piece', mrp: null, in_stock: '20 pieces', available: true, running_low: false }]);
+    expect(res.body.card.kind).toBe('products');
+    expect(res.body.draft).toBeNull();
+  });
+});
+
+describe('POST /api/assistant/customer', () => {
+  const lookup = (spoken: string, token = shop.accessToken) => as(token).post('/api/assistant/customer', { spoken });
+
+  it('finds a customer by the mobile number said in groups', async () => {
+    const res = await lookup('number 98223 34455');
+
+    expect(res.status).toBe(200);
+    expect(res.body.customer.name).toBe('Suresh Patil');
+    expect(res.body.phone).toBe('9822334455');
+  });
+
+  it('finds a customer by name, and returns a new name and number as they were said', async () => {
+    expect((await lookup('Suresh ji')).body.customer.name).toBe('Suresh Patil');
+
+    const fresh = await lookup('naam Ramesh Kumar number 9876500011');
+    expect(fresh.body).toEqual({ name: 'Ramesh Kumar', phone: '9876500011', customer: null, candidates: [] });
+  });
+
+  it("never finds another shop's customer", async () => {
+    const other = await registerShop(app, otherShop);
+
+    const res = await lookup('9822334455', other.accessToken);
+
+    expect(res.body.customer).toBeNull();
+  });
+
+  it('validates input and requires login', async () => {
+    expect((await lookup('  ')).status).toBe(400);
+    expect((await request(app).post('/api/assistant/customer').send({ spoken: 'Suresh' })).status).toBe(401);
   });
 });

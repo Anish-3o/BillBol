@@ -74,3 +74,32 @@ export function findWake(text: string, variants: string[]): number {
   const match = pattern.exec(text);
   return match ? match.index + match[0].length : -1;
 }
+
+// --- Finishing a voice bill --------------------------------------------------------------
+// "Bill complete" / "bas itna hi" / "ho gaya" / "बिल पूरा" / "झालं": the shopkeeper has finished
+// adding items. Ramu then asks if anything is left, takes the customer's name or number, and
+// asks the final yes before saving and printing.
+const COMPLETE = new Set([
+  'complete', 'completed', 'poora', 'pura', 'bas', 'total', 'done', 'finish', 'finished', 'khatam', 'gaya', 'gya',
+  'banao', 'bana', 'zala', 'jhala', 'zhala', 'बस', 'पूरा', 'पूर्ण', 'टोटल', 'कम्प्लीट', 'कंप्लीट', 'ख़त्म', 'खत्म',
+  'गया', 'बनाओ', 'झालं', 'झाला', 'झाले', 'संपलं', 'एवढंच',
+]);
+// Words that may come along without changing the meaning: "haan bas itna hi", "ho gaya", "बिल झालं".
+const COMPLETE_EXTRA = new Set([
+  'ho', 'hua', 'itna', 'itnaa', 'hi', 'sab', 'ab', 'abhi', 'hogaya', 'हो', 'हुआ', 'इतना', 'ही', 'सब', 'अब', 'एवढं', 'सगळं',
+]);
+// The answer to "Kuch aur?": "kuch nahi", "nahi bas", "aur kuch nahi", "नको", "काही नाही".
+const NOTHING_EXTRA = new Set(['kuch', 'kuchh', 'aur', 'else', 'more', 'nothing', 'कुछ', 'और', 'काही', 'आणखी']);
+// "Customer ka naam?" -> "skip" / "rehne do" / "nahi chahiye" / "नको".
+const SKIP = new Set([
+  'skip', 'chhodo', 'chodo', 'rehne', 'rahne', 'nahi', 'nahin', 'no', 'nako', 'नहीं', 'नही', 'छोड़ो', 'छोडो', 'रहने',
+  'नको', 'नाही', 'स्किप',
+]);
+const SKIP_EXTRA = new Set(['chahiye', 'zaroorat', 'jarurat', 'koi', 'naam', 'number', 'customer', 'चाहिए', 'ज़रूरत', 'ज़रुरत', 'कोई', 'नाम', 'नंबर', 'नाव']);
+
+export const isBillComplete = (text: string, ignore: string[] = []) => onlyFrom(text, COMPLETE, ignore, [COMPLETE_EXTRA, YES]);
+export const isNothingMore = (text: string, ignore: string[] = []) =>
+  onlyFrom(text, new Set([...NO, ...COMPLETE]), ignore, [NOTHING_EXTRA, COMPLETE_EXTRA]);
+export const isSkip = (text: string, ignore: string[] = []) => onlyFrom(text, SKIP, ignore, [SKIP_EXTRA]);
+// "Print mat karo" names printing; a plain "nahi" does not.
+export const mentionsPrint = (text: string, ignore: string[] = []) => words(text, ignore).some((w) => PRINT.has(w));

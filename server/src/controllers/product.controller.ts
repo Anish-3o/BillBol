@@ -1,9 +1,11 @@
 import type { Request, Response } from 'express';
 import { getAuth } from '../middleware/authenticate';
 import { parseOrThrow } from '../middleware/validate';
+import * as priceService from '../services/price.service';
 import * as productService from '../services/product.service';
 import {
   listProductsQuerySchema,
+  type PriceUpdateInput,
   type CreateProductInput,
   type UpdateProductInput,
 } from '../validators/product.validator';
@@ -43,4 +45,9 @@ export async function update(req: Request<{ id: string }>, res: Response): Promi
 
 export async function archive(req: Request<{ id: string }>, res: Response): Promise<void> {
   res.json(await productService.archiveProduct(getAuth(req).tenantId, req.params.id));
+}
+
+// Bulk price update from a price list. Preview by default; { apply: true } saves.
+export async function updatePrices(req: Request, res: Response): Promise<void> {
+  res.json(await priceService.updatePrices(getAuth(req).tenantId, req.body as PriceUpdateInput));
 }

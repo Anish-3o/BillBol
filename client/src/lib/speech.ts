@@ -43,7 +43,7 @@ export function onVoicesChanged(callback: () => void): () => void {
 
 // Turns text into what should be SAID: "₹162" -> "162 रुपये", "70g" -> "70 ग्राम", and drops
 // brackets ("Sugar (loose)" -> "Sugar loose"). An Indian voice reads the numbers itself.
-function speakable(text: string, lang: SpeechLang | 'en'): string {
+export function speakable(text: string, lang: SpeechLang | 'en'): string {
   const rupees = lang === 'mr' ? 'रुपये' : lang === 'hi' ? 'रुपये' : 'rupaye';
   let s = text.replace(/₹\s?([\d,]+(?:\.\d+)?)/g, (_, n: string) => `${n.replace(/,/g, '')} ${rupees}`);
   if (lang !== 'en') {

@@ -9,3 +9,5 @@ process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-0123456789-abcdefghijklmno
 // and because the variable now exists, dotenv will not fill it from a developer's .env.
 // Tests that exercise AI code mock it instead.
 process.env.LLM_API_KEY = '';
+// Same for Sarvam (voice): tests mock fetch instead of calling the real speech service.
+process.env.SARVAM_API_KEY = '';

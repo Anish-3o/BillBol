@@ -280,13 +280,17 @@ export function parseOrderLocally(
 
 // --- Intent detection (for the assistant when it runs offline) -------------------------
 
-export type LocalIntent = 'sales' | 'restock' | 'udhaar' | 'clear' | 'greeting' | 'order';
+// 'info': a question about a product's price or stock ("Maggi hai kya?", "tel kitne ka hai?").
+export type LocalIntent = 'sales' | 'restock' | 'udhaar' | 'clear' | 'info' | 'greeting' | 'order';
 export type SalesPeriod = 'today' | 'yesterday' | 'last_7_days' | 'this_month';
 
 // Hindi/Hinglish first, then Marathi ("नको", "उधारी", "संपत आलं", "विक्री").
 const INTENT_PATTERNS: [LocalIntent, RegExp][] = [
   ['clear', /\b(cancel|clear|reset|hatao|hata do|rehne do|naya bill|nako)\b|रद्द|हटाओ|रहने दो|नको|काढून टाका/i],
   ['udhaar', /\b(udhaa?r|udhaari|baa?ki|khaa?ta|credit|owes?)\b|उधार|बाकी|खाता|खात्यात|खात्यावर/i],
+  // Before restock, so "maggi stock mein hai kya" asks about Maggi instead of the reorder list.
+  // Bare "kitna"/"किती" (how much) is not enough: "आजची विक्री किती झाली" asks about sales.
+  ['info', /\b(kitne ka|kitne ki|kitne ke|kitna hai|kitna hua|kitne hue|price|rate|bhav|bhaav|daam|keemat|kimmat|hai kya|milega|available)\b|कितने का|कितने की|कितने के|कितना है|कितना हुआ|भाव|दाम|कीमत|किंमत|है क्या|मिलेगा|आहे का|मिळेल/i],
   ['restock', /\b(stock|khatam|reorder|restock|mangana|mangwana|low|sampat)\b|स्टॉक|खत्म|ख़त्म|संपत|संपल|संपणार|मागवा/i],
   ['sales', /\b(bikri|bikree|vikri|sales?|kamai|becha|bika|galla|revenue|business|earning|kitne bill)\b|बिक्री|विक्री|कमाई|बेचा|धंधा/i],
 ];

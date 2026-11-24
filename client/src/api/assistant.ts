@@ -1,4 +1,4 @@
-import type { AssistantReply, AssistantTurn } from '../types/assistant';
+import type { AssistantReply, AssistantStatus, AssistantTurn, CustomerLookup } from '../types/assistant';
 import type { PaymentMode } from '../types/bill';
 import { api } from './client';
 
@@ -18,4 +18,7 @@ export const askAssistant = (body: {
   language: 'hi' | 'mr' | 'en';
 }) => api<AssistantReply>('/assistant/message', 'POST', body);
 
-export const getAssistantStatus = () => api<{ aiEnabled: boolean }>('/assistant/status');
+export const getAssistantStatus = () => api<AssistantStatus>('/assistant/status');
+
+// The answer to "Customer ka naam ya number?" -> the matching customer, if any. Finds only.
+export const lookupCustomer = (spoken: string) => api<CustomerLookup>('/assistant/customer', 'POST', { spoken });

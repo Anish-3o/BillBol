@@ -9,6 +9,7 @@ import { productRouter } from './product.routes';
 import { shopRouter } from './shop.routes';
 import { staffRouter } from './staff.routes';
 import { stockRouter } from './stock.routes';
+import { voiceRouter } from './voice.routes';
 
 export const apiRouter = Router();
 
@@ -23,3 +24,4 @@ apiRouter.use('/staff', staffRouter); // owner manages helpers' logins
 
 apiRouter.use('/insights', insightsRouter); // dashboard numbers and the morning briefing
 apiRouter.use('/assistant', assistantRouter); // "Hey Ramu" voice assistant
+apiRouter.use('/voice', voiceRouter); // natural speech in and out (Sarvam), when configured

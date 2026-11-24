@@ -21,6 +21,7 @@ const TRY: { text: string; label: string }[] = [
   { text: 'do kilo cheeni, ek Tata namak aur teen Maggi', label: '"Do kilo cheeni, ek Tata namak aur teen Maggi"' },
   { text: 'aaj ki bikri kitni hui?', label: '"Aaj ki bikri kitni hui?"' },
   { text: 'kya kya mangwana hai?', label: '"Kya kya mangwana hai?"' },
+  { text: 'Maggi hai kya? Kitne ka hai?', label: '"Maggi hai kya? Kitne ka hai?"' },
   { text: 'udhaar kitna baaki hai?', label: '"Udhaar kitna baaki hai?"' },
 ];
 
@@ -75,6 +76,28 @@ function CardView({ card }: { card: AssistantCard }) {
       </div>
     );
   }
+  if (card.kind === 'products') {
+    return (
+      <div className="bubble-card">
+        <ul className="rows">
+          {card.products.slice(0, 5).map((p) => (
+            <li key={p.id} className="row">
+              <span className="row-icon">
+                <Icon name="package" size={15} />
+              </span>
+              <span className="row-main">
+                <span className="row-title">{p.name}</span>
+                <span className="row-sub">
+                  {p.stockMilli > 0 ? `${formatQuantity(p.stockMilli, p.unit)} in stock` : 'Out of stock'}
+                </span>
+              </span>
+              <span className="row-amount">{formatPaise(p.pricePaise)}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
   if (card.kind === 'udhaar') {
     return (
       <div className="bubble-card">
@@ -109,8 +132,8 @@ function CardView({ card }: { card: AssistantCard }) {
 }
 
 const VOICE_TEST: Record<SpeechLang, string> = {
-  hi: 'नमस्ते! मैं रामू हूँ। दो किलो चीनी, कुल 92 रुपये। कन्फ़र्म करूँ?',
-  mr: 'नमस्कार! मी रामू. दोन किलो साखर, एकूण 92 रुपये. कन्फर्म करू?',
+  hi: 'नमस्ते! मैं रामू हूँ। चीनी दो किलो, बानवे रुपये। और कुछ?',
+  mr: 'नमस्कार! मी रामू. साखर दोन किलो, ब्याण्णव रुपये. आणखी काही?',
 };
 
 // Pick which Hindi or Marathi voice Ramu speaks with. The list is whatever this browser/OS
@@ -206,7 +229,8 @@ export function RamuPanel() {
               {name}{' '}
               <span className={a.aiEnabled ? 'badge badge-small badge-ai' : 'badge badge-small badge-neutral'}>
                 {a.aiEnabled ? 'Claude AI' : 'Offline brain'}
-              </span>
+              </span>{' '}
+              {a.voiceEngine === 'sarvam' && <span className="badge badge-small badge-ai">Natural voice</span>}
             </h2>
             <p className="ramu-status" aria-live="polite">
               {phaseLabel(a.phase, name)}
@@ -220,7 +244,7 @@ export function RamuPanel() {
           </button>
         </header>
 
-        {a.supported && (
+        {a.handsFreeSupported && (
           <div className="ramu-wake">
             <span className={`live-dot${a.phase === 'standby' ? ' on' : listening ? ' hot' : ''}`} />
             <div>
@@ -257,11 +281,25 @@ export function RamuPanel() {
                 <option value="en-IN">English (India)</option>
               </select>
             </div>
-            {marathi ? (
-              <VoicePicker lang="mr" value={a.settings.voiceNameMr} onChange={(voiceNameMr) => a.updateSettings({ voiceNameMr })} />
-            ) : (
-              <VoicePicker lang="hi" value={a.settings.voiceName} onChange={(voiceName) => a.updateSettings({ voiceName })} />
+            {a.naturalVoiceAvailable && (
+              <div className="setting">
+                <label htmlFor="ramu-natural">Natural voice (Sarvam AI)</label>
+                <button
+                  id="ramu-natural"
+                  type="button"
+                  className="toggle"
+                  role="switch"
+                  aria-checked={a.settings.naturalVoice}
+                  onClick={() => a.updateSettings({ naturalVoice: !a.settings.naturalVoice })}
+                />
+              </div>
             )}
+            {a.voiceEngine === 'browser' &&
+              (marathi ? (
+                <VoicePicker lang="mr" value={a.settings.voiceNameMr} onChange={(voiceNameMr) => a.updateSettings({ voiceNameMr })} />
+              ) : (
+                <VoicePicker lang="hi" value={a.settings.voiceName} onChange={(voiceName) => a.updateSettings({ voiceName })} />
+              ))}
             <div className="setting">
               <label htmlFor="ramu-voice">Speak replies aloud</label>
               <button
@@ -284,16 +322,16 @@ export function RamuPanel() {
                 <>
                   <h3>नमस्कार! मी {name}.</h3>
                   <p>
-                    बोलून बिल करा, किंवा विक्री, स्टॉक आणि उधारीबद्दल विचारा. मी बिल वाचून दाखवीन आणि तुम्ही{' '}
-                    <strong>"हो"</strong> म्हणाल तेव्हाच सेव्ह करीन.
+                    वस्तू सांगा, मी प्रत्येक वस्तू वाचून दाखवीन. झाल्यावर <strong>"बिल झालं"</strong> म्हणा: मी ग्राहकाचं नाव
+                    विचारीन आणि तुम्ही <strong>"हो"</strong> म्हणाल तेव्हाच बिल सेव्ह करून प्रिंट करीन.
                   </p>
                 </>
               ) : (
                 <>
                   <h3>Namaste! Main {name} hoon.</h3>
                   <p>
-                    Bolkar bill banaiye, ya bikri, stock aur udhaar ke baare mein poochhiye. I'll read the bill back and save
-                    it only when you say <strong>"haan"</strong>.
+                    Items boliye, I'll read each one back. When you're done, say <strong>"bill complete"</strong>: I'll ask
+                    for the customer's name, and save and print only when you say <strong>"haan"</strong>.
                   </p>
                 </>
               )}
@@ -385,8 +423,16 @@ export function RamuPanel() {
               </button>
             </div>
             <p className="draft-say">
-              Say <strong>{marathi ? '"हो"' : '"haan"'}</strong> to save (then print) · <strong>{marathi ? '"नको"' : '"nahi"'}</strong> to
-              cancel ·{' '}
+              {a.step === 'confirm' ? (
+                <>
+                  Say <strong>{marathi ? '"हो"' : '"haan"'}</strong> to save and print ·{' '}
+                </>
+              ) : (
+                <>
+                  Say <strong>{marathi ? '"बिल झालं"' : '"bill complete"'}</strong> when done ·{' '}
+                  <strong>{marathi ? '"रद्द"' : '"cancel"'}</strong> to clear ·{' '}
+                </>
+              )}
               <button type="button" className="link-button" onClick={a.editDraftInBilling}>
                 edit in billing
               </button>

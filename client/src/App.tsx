@@ -9,6 +9,7 @@ import DashboardPage from './pages/DashboardPage';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import NewBillPage from './pages/NewBillPage';
+import PriceUpdatePage from './pages/PriceUpdatePage';
 import ProductFormPage from './pages/ProductFormPage';
 import ProductsPage from './pages/ProductsPage';
 import ReceiveStockPage from './pages/ReceiveStockPage';
@@ -43,6 +44,7 @@ export default function App() {
           <Route element={<RequireOwner fallback="/products" />}>
             <Route path="/products/new" element={<ProductFormPage />} />
             <Route path="/products/:id/edit" element={<ProductFormPage />} />
+            <Route path="/products/prices" element={<PriceUpdatePage />} />
           </Route>
           <Route element={<RequireOwner fallback="/dashboard" />}>
             <Route path="/settings" element={<SettingsPage />} />

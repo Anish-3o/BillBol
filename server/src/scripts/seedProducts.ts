@@ -7,8 +7,9 @@
 // the same rules (price <= MRP, whole numbers for pieces...). Safe to run again: products
 // whose name already exists in the shop are skipped.
 //
-// Prices are illustrative (Nov 2026) and include GST. GST rates are our best reading of the
-// GST 2.0 slabs (Sep 2025): loose staples, fresh milk, eggs, bread 0%; most packaged food
+// Prices are typical MRPs as best known (late 2025), not checked against today's packs, and
+// include GST. The owner updates them in the app (Products -> Update prices, or when receiving
+// stock). GST rates are our best reading of the GST 2.0 slabs (Sep 2025): loose staples, fresh milk, eggs, bread 0%; most packaged food
 // and personal care 5%; detergent 18%; aerated drinks 40%. Verify with a CA.
 import mongoose from 'mongoose';
 import { connectDB, disconnectDB } from '../config/db';
@@ -62,6 +63,38 @@ export const CATALOGUE: Seed[] = [
   { name: 'Surf Excel 1kg', localName: 'सर्फ', unit: 'packet', price: 135, mrp: 145, gstRate: 18, hsn: '3402', stock: 15, lowStock: 4 },
   { name: 'Matchbox (pack of 10)', localName: 'माचिस', unit: 'packet', price: 10, gstRate: 5, hsn: '3605', stock: 30, lowStock: 5 },
   { name: 'Agarbatti', localName: 'अगरबत्ती', unit: 'packet', price: 30, mrp: 30, gstRate: 5, hsn: '3307', stock: 20, lowStock: 5 },
+
+  // Added later, at the end so the demo barcodes above (made from each item's position) stay
+  // the same. Together: 50 of the items a kirana sells most.
+  // More loose staples and vegetables
+  { name: 'Sona Masoori Rice (loose)', localName: 'मसूरी चावल', unit: 'kg', price: 62, gstRate: 0, hsn: '1006', stock: 60, lowStock: 15 },
+  { name: 'Wheat (loose)', localName: 'गेहूं', unit: 'kg', price: 34, gstRate: 0, hsn: '1001', stock: 80, lowStock: 20 },
+  { name: 'Chana Dal (loose)', localName: 'चना दाल', unit: 'kg', price: 95, gstRate: 0, hsn: '0713', stock: 25, lowStock: 5 },
+  { name: 'Jaggery (loose)', localName: 'गुड़', unit: 'kg', price: 60, gstRate: 0, hsn: '1701', stock: 15, lowStock: 4 },
+  { name: 'Onion (loose)', localName: 'प्याज', unit: 'kg', price: 35, gstRate: 0, hsn: '0703', stock: 40, lowStock: 10 },
+  { name: 'Potato (loose)', localName: 'आलू', unit: 'kg', price: 30, gstRate: 0, hsn: '0701', stock: 40, lowStock: 10 },
+  // Packaged staples and spices
+  { name: 'Fortune Mustard Oil 1L', localName: 'सरसों तेल', unit: 'packet', price: 180, mrp: 195, gstRate: 5, hsn: '1514', stock: 18, lowStock: 5 },
+  { name: 'Amul Ghee 1L', localName: 'घी', unit: 'packet', price: 600, mrp: 610, gstRate: 5, hsn: '0405', stock: 8, lowStock: 2 },
+  { name: 'Sooji 500g', localName: 'सूजी', unit: 'packet', price: 32, mrp: 35, gstRate: 5, hsn: '1103', stock: 20, lowStock: 5 },
+  { name: 'Maida 500g', localName: 'मैदा', unit: 'packet', price: 30, mrp: 32, gstRate: 5, hsn: '1101', stock: 20, lowStock: 5 },
+  { name: 'Jeera 100g', localName: 'जीरा', unit: 'packet', price: 58, mrp: 62, gstRate: 5, hsn: '0909', stock: 20, lowStock: 5 },
+  { name: 'MDH Garam Masala 100g', localName: 'गरम मसाला', unit: 'packet', price: 92, mrp: 96, gstRate: 5, hsn: '0910', stock: 12, lowStock: 3 },
+  { name: 'Kissan Tomato Ketchup 500g', localName: 'सॉस', unit: 'piece', price: 115, mrp: 120, gstRate: 5, hsn: '2103', stock: 10, lowStock: 3 },
+  // Dairy
+  { name: 'Amul Taaza Milk 500ml', localName: 'टोंड दूध', unit: 'packet', price: 28, mrp: 28, gstRate: 0, hsn: '0401', stock: 40, lowStock: 10 },
+  { name: 'Amul Dahi 400g', localName: 'दही', unit: 'piece', price: 35, mrp: 35, gstRate: 5, hsn: '0403', stock: 15, lowStock: 5 },
+  { name: 'Amul Paneer 200g', localName: 'पनीर', unit: 'packet', price: 92, mrp: 95, gstRate: 0, hsn: '0406', stock: 10, lowStock: 3 },
+  // Snacks and drinks
+  { name: 'Britannia Marie Gold 250g', localName: 'मैरी बिस्किट', unit: 'packet', price: 38, mrp: 40, gstRate: 5, hsn: '1905', stock: 30, lowStock: 8 },
+  { name: 'Lays Classic Salted 50g', localName: 'चिप्स', unit: 'packet', price: 20, mrp: 20, gstRate: 5, hsn: '2005', stock: 40, lowStock: 10 },
+  { name: 'Bournvita 500g', localName: 'बॉर्नविटा', unit: 'packet', price: 240, mrp: 250, gstRate: 5, hsn: '1901', stock: 8, lowStock: 2 },
+  { name: 'Nescafe Classic 50g', localName: 'कॉफ़ी', unit: 'piece', price: 180, mrp: 190, gstRate: 5, hsn: '2101', stock: 8, lowStock: 2 },
+  { name: 'Bisleri Water 1L', localName: 'पानी की बोतल', unit: 'piece', price: 20, mrp: 20, gstRate: 5, hsn: '2201', stock: 48, lowStock: 12 },
+  // Cleaning and personal care
+  { name: 'Vim Bar 300g', localName: 'बर्तन साबुन', unit: 'piece', price: 30, mrp: 30, gstRate: 18, hsn: '3402', stock: 24, lowStock: 6 },
+  { name: 'Harpic 500ml', localName: 'टॉयलेट क्लीनर', unit: 'piece', price: 100, mrp: 105, gstRate: 18, hsn: '3402', stock: 10, lowStock: 3 },
+  { name: 'Clinic Plus Shampoo 175ml', localName: 'शैम्पू', unit: 'piece', price: 105, mrp: 110, gstRate: 5, hsn: '3305', stock: 10, lowStock: 3 },
 ];
 
 // Rupees/units to paise/thousandths. Math.round guards against float noise (e.g. 0.1 * 3)

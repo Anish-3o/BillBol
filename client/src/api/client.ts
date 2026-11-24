@@ -42,6 +42,19 @@ export async function api<T>(path: string, method: Method = 'GET', body?: unknow
   return parse<T>(res);
 }
 
+// For requests that are not JSON: a voice recording going up, or speech audio coming back.
+// Same session handling as api(): one refresh-and-retry when the access token has expired.
+export async function apiFetch(path: string, init: RequestInit): Promise<Response> {
+  const go = () => fetch(`/api${path}`, { ...init, credentials: 'include' });
+  let res = await go();
+  if (res.status === 401) {
+    if (await refreshSession()) res = await go();
+    else onSessionExpired?.();
+  }
+  if (!res.ok) await parse(res); // throws an ApiError with the server's message
+  return res;
+}
+
 export const apiGet = <T>(path: string) => api<T>(path, 'GET');
 export const apiPost = <T>(path: string, body?: unknown) => api<T>(path, 'POST', body);
 

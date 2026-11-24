@@ -1,6 +1,7 @@
 import { betaZodTool } from '@anthropic-ai/sdk/helpers/beta/zod';
 import * as z from 'zod/v4';
 import { runAssistantAgent, type AssistantTurn, type RunnableTool } from '../ai/assistant';
+import { parseCustomerSpeech } from '../ai/customerSpeech';
 import { isClaudeConfigured } from '../ai/claude';
 import { detectIntent, detectPeriod, isDevanagari, parseOrderLocally, type SalesPeriod } from '../ai/localParser';
 import type { VoiceOrder } from '../ai/voiceOrder';
@@ -38,7 +39,8 @@ export type AssistantCard =
   | { kind: 'sales'; summary: SalesSummary }
   | { kind: 'restock'; items: RestockSuggestion[] }
   | { kind: 'udhaar'; summary: UdhaarSummary }
-  | { kind: 'customer'; customer: { id: string; name: string; phone: string | null; balancePaise: number } };
+  | { kind: 'customer'; customer: { id: string; name: string; phone: string | null; balancePaise: number } }
+  | { kind: 'products'; products: PublicProduct[] }; // "Maggi hai?": price and stock
 
 export type AssistantReply = {
   reply: string; // shown on screen, in the language the shopkeeper used
@@ -129,6 +131,67 @@ const restockForModel = (items: RestockSuggestion[]) =>
     suggested_order: formatQty(r.suggestedMilli, r.unit),
   }));
 
+// What one update did to the bill, worked out in code by comparing the draft before and
+// after. Ramu reads these lines back ("Cheeni 2 kilo, ₹92") so the shopkeeper hears each
+// item and its quantity as it goes in, without the model having to compare lists itself.
+type Snapshot = Map<string, { name: string; localName: string | null; quantityMilli: number }>;
+export type DraftChange = { name: string; localName: string | null; quantityMilli: number; unit: string; amountPaise: number };
+
+function snapshot(state: DraftState): Snapshot {
+  return new Map(
+    [...state.lines.values()].map((l) => [l.product.id, { name: l.product.name, localName: l.product.localName ?? null, quantityMilli: l.quantityMilli }]),
+  );
+}
+
+function draftChanges(before: Snapshot, state: DraftState, quote: BillQuote | null): { changed: DraftChange[]; removed: string[] } {
+  const changed = (quote?.lines ?? [])
+    .filter((l) => before.get(l.productId)?.quantityMilli !== l.quantityMilli)
+    .map((l) => ({
+      name: l.name,
+      localName: state.lines.get(l.productId)?.product.localName ?? null,
+      quantityMilli: l.quantityMilli,
+      unit: l.unit,
+      amountPaise: l.totalPaise,
+    }));
+  const removed = [...before.entries()].filter(([id]) => !state.lines.has(id)).map(([, p]) => p.name);
+  return { changed, removed };
+}
+
+// For the model: what a product costs and whether it is on the shelf, formatted in code.
+const productForModel = (p: ProductDoc) => ({
+  name: p.name,
+  price: `${formatRupees(p.pricePaise)} per ${p.unit}`,
+  mrp: p.mrpPaise != null ? formatRupees(p.mrpPaise) : null,
+  in_stock: formatQty(Math.max(0, p.stockMilli), p.unit),
+  available: p.stockMilli > 0,
+  running_low: p.lowStockMilli > 0 && p.stockMilli <= p.lowStockMilli,
+});
+
+// "Suresh Patil 98223 34455" -> this shop's customer, by phone first (exact), then by name.
+// Used when Ramu asks for the customer's details before saving a bill. Finds only; a new
+// customer is created by the app after the shopkeeper confirms the bill.
+export type CustomerLookup = {
+  name: string | null;
+  phone: string | null;
+  customer: { id: string; name: string; phone: string | null; balancePaise: number } | null;
+  candidates: { id: string; name: string; phone: string | null }[];
+};
+
+export async function lookupCustomer(tenantId: string, spoken: string): Promise<CustomerLookup> {
+  const { name, phone } = parseCustomerSpeech(spoken);
+  const pub = (c: CustomerDoc) => ({ id: c.id as string, name: c.name, phone: c.phone ?? null, balancePaise: c.balancePaise });
+  if (phone) {
+    const byPhone = await Customer.findOne({ tenantId, phone });
+    if (byPhone) return { name, phone, customer: pub(byPhone), candidates: [] };
+  }
+  if (name) {
+    const { match, candidates } = await findCustomerByName(tenantId, name);
+    if (match) return { name, phone, customer: pub(match), candidates: [] };
+    return { name, phone, customer: null, candidates: candidates.map(({ id, name: n, phone: p }) => ({ id, name: n, phone: p ?? null })) };
+  }
+  return { name, phone, customer: null, candidates: [] };
+}
+
 export async function handleAssistantMessage(
   auth: { tenantId: string; userId: string },
   input: AssistantInput,
@@ -155,6 +218,7 @@ export async function handleAssistantMessage(
 
   // --- The agent's tools: closures over this request's tenant and draft ---
   const setDraft = async (order: VoiceOrder, paymentMode?: PaymentMode, customerName?: string) => {
+    const before = snapshot(state);
     const { items, unmatched } = orderToDraftItems(order, catalogue.byRef);
     state.lines = new Map(items.map((i) => [i.product.id, { product: byId.get(i.product.id)!, quantityMilli: i.quantityMilli }]));
     state.unmatched = unmatched;
@@ -170,7 +234,8 @@ export async function handleAssistantMessage(
     if (state.paymentMode === 'udhaar' && !state.customer) {
       customerNote ??= 'Udhaar needs a customer. Ask whose khata to write it in.';
     }
-    return { quote: await draftQuote(tenantId, state), customerNote };
+    const quote = await draftQuote(tenantId, state);
+    return { quote, customerNote, ...draftChanges(before, state, quote) };
   };
 
   const tools: RunnableTool[] = [
@@ -191,12 +256,15 @@ export async function handleAssistantMessage(
         customer_name: z.string().optional().describe('For udhaar: the customer name as said'),
       }),
       run: async (args) => {
-        const { quote, customerNote } = await setDraft(
+        const { quote, customerNote, changed, removed } = await setDraft(
           { items: args.items, unmatched: args.unmatched ?? [] },
           args.payment_mode,
           args.customer_name,
         );
         return JSON.stringify({
+          // Read these back: the items this update added or changed, and what it took out.
+          just_added_or_changed: changed.map((c) => ({ name: c.name, quantity: formatQty(c.quantityMilli, c.unit), amount: formatRupees(c.amountPaise) })),
+          just_removed: removed,
           ...quoteForModel(quote),
           not_in_catalogue: state.unmatched,
           payment_mode: state.paymentMode,
@@ -215,6 +283,18 @@ export async function handleAssistantMessage(
         state.customer = null;
         state.paymentMode = 'cash';
         return 'Draft cleared.';
+      },
+    }),
+    betaZodTool({
+      name: 'check_products',
+      description:
+        'Price and stock of catalogue products, for questions like "Maggi hai?", "tel kitne ka hai?" or "kaun sa atta hai?". Pass the refs of every product that could match. Does not change the bill.',
+      inputSchema: z.object({ refs: z.array(z.string()).min(1).max(10).describe('Catalogue refs, e.g. ["P3", "P7"]') }),
+      run: async ({ refs }) => {
+        const found = refs.map((r) => catalogue.byRef.get(r.trim().toUpperCase())).filter((p): p is ProductDoc => Boolean(p));
+        if (found.length === 0) return 'None of these are in the catalogue.';
+        card = { kind: 'products', products: found.map(toPublicProduct) };
+        return JSON.stringify(found.map(productForModel));
       },
     }),
     betaZodTool({
@@ -318,6 +398,28 @@ const say = (lang: Lang, [hinglish, hindi, marathi]: Phrase) => ({
   speech: lang === 'mr' ? marathi : hindi,
 });
 type Spoken = { reply: string; speech: string; card: AssistantCard | null };
+type SetDraft = (
+  order: VoiceOrder,
+  paymentMode?: PaymentMode,
+  customerName?: string,
+) => Promise<{ quote: BillQuote | null; customerNote?: string; changed: DraftChange[]; removed: string[] }>;
+
+// Units the way they are said at the counter, in each language: "2 kilo", "3 पैकेट", "1 नग".
+const UNIT_WORDS: Record<string, Phrase> = {
+  kg: ['kilo', 'किलो', 'किलो'],
+  litre: ['litre', 'लीटर', 'लिटर'],
+  piece: ['piece', 'पीस', 'नग'],
+  packet: ['packet', 'पैकेट', 'पाकीट'],
+  box: ['dabba', 'डिब्बा', 'डबा'],
+  dozen: ['dozen', 'दर्जन', 'डझन'],
+};
+const qtyText = (quantityMilli: number, unit: string, i: 0 | 1 | 2) =>
+  `${Number((quantityMilli / 1000).toFixed(3))} ${UNIT_WORDS[unit]?.[i] ?? unit}`;
+// The screen and the Hindi/Marathi voice use the product's local name when it has one
+// ("चीनी"), so the Devanagari sentence reads naturally; Hinglish uses the English name.
+const itemName = (p: { name: string; localName: string | null }, i: 0 | 1 | 2) => (i > 0 && p.localName ? p.localName : p.name);
+const itemList = (items: DraftChange[], i: 0 | 1 | 2) =>
+  items.map((c) => `${itemName(c, i)} ${qtyText(c.quantityMilli, c.unit, i)} ${formatRupees(c.amountPaise)}`).join(', ');
 
 async function answerLocally(
   tenantId: string,
@@ -326,7 +428,7 @@ async function answerLocally(
   assistantName: string,
   catalogue: Awaited<ReturnType<typeof loadCatalogue>>,
   state: DraftState,
-  setDraft: (order: VoiceOrder, paymentMode?: PaymentMode, customerName?: string) => Promise<{ quote: BillQuote | null; customerNote?: string }>,
+  setDraft: SetDraft,
 ): Promise<Spoken> {
   // Marathi is chosen in the app (both languages are written in Devanagari, so the script alone
   // cannot tell them apart); otherwise Devanagari means Hindi and Latin means Hinglish.
@@ -401,6 +503,35 @@ async function answerLocally(
     return { card: null, ...say(lang, ['Theek hai, bill hata diya.', 'ठीक है, बिल हटा दिया।', 'ठीक आहे, बिल रद्द केलं.']) };
   }
 
+  if (intent === 'info') {
+    // "Maggi hai kya?" / "tel kitne ka hai?": price and stock of the products named.
+    const asked = [...new Set(parsed.items.map((i) => i.ref))].map((ref) => catalogue.byRef.get(ref)!);
+    if (asked.length > 0) {
+      const line = (p: ProductDoc, i: 0 | 1 | 2) => {
+        const name = itemName({ name: p.name, localName: p.localName ?? null }, i);
+        const per = UNIT_WORDS[p.unit]?.[i] ?? p.unit;
+        const price = formatRupees(p.pricePaise);
+        const left = qtyText(Math.max(0, p.stockMilli), p.unit, i);
+        if (p.stockMilli <= 0) {
+          return [`${name} abhi khatam hai.`, `${name} अभी ख़त्म है।`, `${name} आत्ता संपलं आहे.`][i];
+        }
+        return [`${name} hai, ${price} ek ${per}, ${left} bacha hai.`, `${name} है, ${price} एक ${per}, ${left} बचा है।`, `${name} आहे, ${price} एक ${per}, ${left} शिल्लक.`][i];
+      };
+      const sentence = (i: 0 | 1 | 2) => asked.slice(0, 3).map((p) => line(p, i)).join(' ');
+      return { card: { kind: 'products', products: asked.map(toPublicProduct) }, ...say(lang, [sentence(0), sentence(1), sentence(2)]) };
+    }
+    if (state.lines.size > 0) {
+      // "Kitna hua?" with no product named: the total so far.
+      const quote = await draftQuote(tenantId, state);
+      const total = formatRupees(quote?.totalPaise ?? 0);
+      const n = quote?.lines.length ?? 0;
+      return {
+        card: null,
+        ...say(lang, [`Abhi tak ${n} ${n === 1 ? 'item' : 'items'}, kul ${total}. Aur kuch?`, `अभी तक ${n} आइटम, कुल ${total}। और कुछ?`, `आत्तापर्यंत ${n} वस्तू, एकूण ${total}. आणखी काही?`]),
+      };
+    }
+  }
+
   if (parsed.items.length > 0) {
     // Offline, new items are ADDED to the draft ("aur do maggi"): rules cannot reliably tell
     // "replace" from "add", and adding is what people mean most of the time.
@@ -409,12 +540,11 @@ async function answerLocally(
       quantity: l.quantityMilli / 1000,
       heard: l.product.name,
     }));
-    const { quote, customerNote } = await setDraft(
+    const { quote, customerNote, changed } = await setDraft(
       { items: [...merged, ...parsed.items], unmatched: parsed.unmatched },
       intent === 'udhaar' ? 'udhaar' : undefined,
       named?.name,
     );
-    const count = quote?.lines.length ?? 0;
     // Optional sentence parts, each in all three languages.
     const none: Phrase = ['', '', ''];
     const lost = state.unmatched.join(', ');
@@ -427,12 +557,15 @@ async function answerLocally(
         ? [' Kiske khate mein likhun?', ' किसके खाते में लिखूँ?', ' कोणाच्या खात्यात लिहू?']
         : none;
     const total = formatRupees(quote?.totalPaise ?? 0);
+    const lead = (i: 0 | 1 | 2, stop: string) => (changed.length > 0 ? itemList(changed, i) + stop : '');
+    // Each new item with its quantity and amount, then the total, then "anything else?". The
+    // bill is finished when the shopkeeper says "bill complete" (handled in the app).
     return {
       card: null,
       ...say(lang, [
-        `${count} ${count === 1 ? 'item' : 'items'}, kul ${total}.${who[0]}${missing[0]}${note[0]} Confirm karun?`,
-        `${count} आइटम, कुल ${total}।${who[1]}${missing[1]}${note[1]} कन्फ़र्म करूँ?`,
-        `${count} वस्तू, एकूण ${total}.${who[2]}${missing[2]}${note[2]} कन्फर्म करू?`,
+        `${lead(0, '. ')}Kul ${total}.${who[0]}${missing[0]}${note[0]} Aur kuch?`,
+        `${lead(1, '। ')}कुल ${total}।${who[1]}${missing[1]}${note[1]} और कुछ?`,
+        `${lead(2, '. ')}एकूण ${total}.${who[2]}${missing[2]}${note[2]} आणखी काही?`,
       ]),
     };
   }

@@ -72,6 +72,11 @@ export default function ProductsPage() {
             <Icon name="scan" size={18} /> Receive goods
           </Link>
           {isOwner && (
+            <Link to="/products/prices" className="btn btn-secondary">
+              <Icon name="rupee" size={18} /> Update prices
+            </Link>
+          )}
+          {isOwner && (
             <Link to="/products/new" className="btn btn-primary">
               <Icon name="plus" size={18} /> Add product
             </Link>

@@ -1,5 +1,5 @@
 import { createContext } from 'react';
-import type { AssistantCard, AssistantDraft } from '../types/assistant';
+import type { AssistantCard, AssistantDraft, VoiceEngine } from '../types/assistant';
 
 // off:       not listening at all
 // standby:   hands-free mode, listening only for the wake word ("Hey Ramu")
@@ -24,7 +24,15 @@ export type AssistantSettings = {
   voiceName: string; // chosen Hindi voice; '' = the most natural one available
   voiceNameMr: string; // chosen Marathi voice, used when lang is mr-IN
   handsFree: boolean; // listen for the wake word all the time
+  naturalVoice: boolean; // use Sarvam's voice when the server has it (off = browser speech)
 };
+
+// Where a voice bill is, once the shopkeeper says "bill complete":
+// items         adding items (the normal state)
+// anythingElse  Ramu asked "Kuch aur?"
+// customer      Ramu asked for the customer's name or number
+// confirm       Ramu read the total and asked "Bill banake print karun?"
+export type CheckoutStep = 'items' | 'anythingElse' | 'customer' | 'confirm';
 
 export type AssistantContextValue = {
   open: boolean;
@@ -35,7 +43,11 @@ export type AssistantContextValue = {
   draft: AssistantDraft | null;
   settings: AssistantSettings;
   updateSettings: (patch: Partial<AssistantSettings>) => void;
-  supported: boolean; // speech recognition available in this browser
+  supported: boolean; // can listen at all (browser recognition, or recording for Sarvam)
+  handsFreeSupported: boolean; // the wake word needs the browser's speech recognition
+  voiceEngine: VoiceEngine; // what is actually used for speech right now
+  naturalVoiceAvailable: boolean; // the server has Sarvam set up
+  step: CheckoutStep;
   aiEnabled: boolean | null;
   error: string | null;
   confirming: boolean;
