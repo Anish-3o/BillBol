@@ -230,7 +230,8 @@ passwords are hashed with `bcryptjs` (pure JavaScript) rather than the native `b
 | `npm run setup` | Installs root, server and client dependencies |
 | `npm run dev` | Runs API and web app together |
 | `npm run lint` | Lints server and client |
-| `npm test` | Runs server tests (needs MongoDB running; uses separate `billbol_test_*` databases) |
+| `npm test` | Runs server tests (needs MongoDB running; uses separate `billbol_test_*` databases), then client tests |
+| `npm test --prefix client` | Runs only the client unit tests (Vitest; money, quantities, voice intents, UPI, price lists) |
 | `npm run seed:products --prefix server -- <owner phone>` | Adds a sample kirana catalogue (50 products) to that owner's shop |
 | `npm run seed:demo` | Creates (or rebuilds) the demo shop with a month of history |
 | `npm run format` | Formats all files with Prettier |

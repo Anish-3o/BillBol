@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -90,6 +91,12 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+  },
+  // Client unit tests (npm test): plain logic such as money, quantities and voice intents.
+  // They run in Node, no browser needed.
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
   },
   preview: {
     // `npm run preview` serves the production build (with the service worker); it needs the
