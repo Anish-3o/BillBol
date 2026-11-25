@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { apiGet, apiPost, setSessionExpiredHandler } from '../api/client';
+import { ApiError, apiGet, apiPost, setSessionExpiredHandler } from '../api/client';
 import type { RegisterInput, Session } from '../types/auth';
 import { AuthContext, type AuthContextValue, type AuthStatus } from './auth-context';
 
@@ -19,13 +19,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // whether we are logged in is to ask the server. If the access token has expired, the API
     // client refreshes it and retries automatically before this resolves.
     let cancelled = false;
-    apiGet<Session>('/auth/me')
-      .then((session) => !cancelled && setState({ status: 'authenticated', session }))
-      .catch(() => !cancelled && setState(LOGGED_OUT));
+    const checkSession = () => {
+      apiGet<Session>('/auth/me')
+        .then((session) => !cancelled && setState({ status: 'authenticated', session }))
+        .catch((err: unknown) => {
+          if (cancelled) return;
+          // Opened with no internet (the installed app starts from its cache): the server could
+          // not be asked, which is not the same as "logged out". The login cookies are still
+          // valid, so keep showing the spinner (under the "No internet" banner) and ask again
+          // the moment the connection is back, instead of a login screen that cannot work offline.
+          if (!(err instanceof ApiError) && !navigator.onLine) {
+            window.addEventListener('online', checkSession, { once: true });
+            return;
+          }
+          setState(LOGGED_OUT);
+        });
+    };
+    checkSession();
 
     // React StrictMode runs effects twice in development; this ignores the first run's result.
     return () => {
       cancelled = true;
+      window.removeEventListener('online', checkSession);
       setSessionExpiredHandler(null);
     };
   }, []);

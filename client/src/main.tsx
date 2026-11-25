@@ -4,6 +4,8 @@ import { BrowserRouter } from 'react-router';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import './index.css';
+// Imported here, before anything renders, so the one-time "can install" event is never missed.
+import './lib/installPrompt';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

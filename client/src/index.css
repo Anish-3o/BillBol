@@ -633,6 +633,52 @@ textarea:focus {
   }
 }
 
+/* Installable app (PWA): "new version ready" toast and the offline strip. */
+.pwa-toast {
+  z-index: 90;
+  max-width: calc(100vw - 24px);
+  padding: 10px 10px 10px 16px;
+}
+.pwa-toast span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pwa-toast-close {
+  width: 32px;
+  height: 32px;
+  color: rgb(255 255 255 / 0.75);
+}
+.pwa-toast-close:hover {
+  background: rgb(255 255 255 / 0.12);
+}
+.offline-banner {
+  position: sticky;
+  top: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  /* Below the notch / status bar when the installed app runs full screen. */
+  padding-top: calc(8px + env(safe-area-inset-top));
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  text-align: center;
+}
+.offline-banner svg {
+  flex: none;
+  color: var(--accent);
+}
+@media (min-width: 1024px) {
+  /* No bottom tabs on desktop, so the toast can sit lower. */
+  .pwa-toast {
+    bottom: 24px;
+  }
+}
+
 /* ==========================================================================
    App shell: sidebar on desktop, top bar + bottom tabs on phones
    ========================================================================== */
@@ -3607,6 +3653,8 @@ tr.row-cancelled td.num {
   .receipt-actions,
   .success-banner,
   .warning-banner,
+  .offline-banner,
+  .pwa-toast,
   .no-print {
     display: none !important;
   }

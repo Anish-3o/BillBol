@@ -4,6 +4,7 @@ import { phaseLabel } from '../context/assistant-context';
 import { AssistantProvider } from '../context/AssistantProvider';
 import { useAssistant } from '../hooks/useAssistant';
 import { useAuth, useSession } from '../hooks/useAuth';
+import { useInstallPrompt } from '../lib/installPrompt';
 import { Icon, type IconName } from './Icon';
 import { RamuOrb, RamuPanel } from './RamuPanel';
 
@@ -41,6 +42,8 @@ function Shell() {
   const assistant = useAssistant();
   const [loggingOut, setLoggingOut] = useState(false);
   const { pathname } = useLocation();
+  // Shown only while the browser offers installation (see lib/installPrompt.ts).
+  const { canInstall, install } = useInstallPrompt();
 
   // "Bills" is active on the list and on one bill, but not on /bills/new (its own item).
   const isActive = (to: string) =>
@@ -94,6 +97,13 @@ function Shell() {
           </button>
         </div>
 
+        {canInstall && (
+          <button type="button" className="nav-item" onClick={() => void install()}>
+            <Icon name="download" />
+            Install app
+          </button>
+        )}
+
         <div className="sidebar-foot">
           <span className="avatar">{user.name.slice(0, 1).toUpperCase()}</span>
           <span className="sidebar-user">
@@ -122,6 +132,11 @@ function Shell() {
               <span className="listening-pill">
                 <span className={`live-dot${assistant.phase === 'standby' ? ' on' : ' hot'}`} /> {assistant.settings.name}
               </span>
+            )}
+            {canInstall && (
+              <button type="button" className="icon-btn" onClick={() => void install()} aria-label="Install app" title="Install app">
+                <Icon name="download" />
+              </button>
             )}
             {user.role === 'owner' && (
               <NavLink to="/settings" className="icon-btn" aria-label="Settings">

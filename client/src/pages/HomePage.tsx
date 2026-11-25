@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 
 
 import { DEMO_LOGIN } from '../lib/demo';
+import { useInstallPrompt } from '../lib/installPrompt';
 
 const FEATURES: { icon: IconName; tone?: string; title: string; text: string; badge?: string }[] = [
   {
@@ -56,6 +57,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [demoBusy, setDemoBusy] = useState(false);
   const [demoError, setDemoError] = useState<string | null>(null);
+  const { canInstall, install } = useInstallPrompt();
 
   async function tryDemo() {
     if (status === 'authenticated') return navigate('/dashboard');
@@ -127,6 +129,13 @@ export default function HomePage() {
               <Link to="/register" className="btn btn-secondary btn-lg">
                 Create your shop
               </Link>
+              {/* Only where the browser offers it (Chrome/Edge); it then opens like a phone app. */}
+              {canInstall && (
+                <button type="button" className="btn btn-ghost btn-lg" onClick={() => void install()}>
+                  <Icon name="download" size={18} />
+                  Install app
+                </button>
+              )}
             </div>
             {demoError ? (
               <p className="hero-note" style={{ color: 'var(--danger)' }}>
@@ -145,8 +154,8 @@ export default function HomePage() {
                 <span>Hindi · Hinglish · Marathi</span>
               </div>
               <div>
-                <strong>Works offline</strong>
-                <span>falls back when the internet drops</span>
+                <strong>Installs like an app</strong>
+                <span>opens even without internet</span>
               </div>
             </div>
           </div>
