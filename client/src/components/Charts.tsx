@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { dayMonthOf, isWeekend, weekdayOf } from '../lib/datetime';
 import { formatPaise } from '../lib/money';
 import type { DayPoint } from '../types/insights';
@@ -11,16 +12,30 @@ export function SalesBars({ days }: { days: DayPoint[] }) {
   const today = days.at(-1)?.date;
   return (
     <div className="bar-chart" role="img" aria-label={`Daily sales for the last ${days.length} days`}>
-      {days.map((d) => {
+      {days.map((d, i) => {
         const isToday = d.date === today;
         const height = `${Math.max(1.5, (d.salesPaise / max) * 100)}%`;
+        // 0 for the first bar, 1 for the last: the tooltip slides by this fraction so it stays
+        // inside the chart (see .bar-tip), instead of hanging off the screen on phones.
+        const tipPos = { '--f': days.length > 1 ? i / (days.length - 1) : 0.5 } as CSSProperties;
         return (
           <div key={d.date} className={`bar-col${isToday ? ' is-today' : ''}`} tabIndex={0}>
-            <span className="bar-tip">
+            <span className="bar-tip" style={tipPos}>
               {dayMonthOf(d.date)} · {formatPaise(d.salesPaise)} · {d.bills} bills
             </span>
             <div className={`bar${isToday ? ' today' : isWeekend(d.date) ? ' weekend' : ''}`} style={{ height }} />
-            <span className="bar-label">{isToday ? 'Today' : weekdayOf(d.date).slice(0, 2)}</span>
+            <span className="bar-label">
+              {isToday ? (
+                // "Today" is wider than a bar on a narrow phone and ran into the label next to it,
+                // so phones show the short weekday (still highlighted) instead.
+                <>
+                  <span className="today-long">Today</span>
+                  <span className="today-short">{weekdayOf(d.date).slice(0, 2)}</span>
+                </>
+              ) : (
+                weekdayOf(d.date).slice(0, 2)
+              )}
+            </span>
           </div>
         );
       })}

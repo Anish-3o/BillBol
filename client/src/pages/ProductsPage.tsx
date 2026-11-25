@@ -193,11 +193,11 @@ export default function ProductsPage() {
                       <span className="badge badge-small badge-neutral">{p.gstRate}%</span>
                     </td>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div className="stock-cell">
                         <span className={`stock-bar ${level.cls}`}>
                           <span style={{ width: `${level.pct}%` }} />
                         </span>
-                        <span className={level.cls ? 'stock stock-low' : 'stock'} style={{ whiteSpace: 'nowrap' }}>
+                        <span className={level.cls ? 'stock stock-low' : 'stock'}>
                           {formatQuantity(p.stockMilli, p.unit)}
                         </span>
                       </div>

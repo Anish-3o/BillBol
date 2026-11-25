@@ -1692,9 +1692,10 @@ textarea:focus {
   gap: 6px;
   height: 210px;
   padding-top: 26px;
+  /* Tooltips are positioned against the whole chart, not their own bar (see .bar-tip). */
+  position: relative;
 }
 .bar-col {
-  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -1722,12 +1723,16 @@ textarea:focus {
 .bar-col:hover .bar {
   filter: brightness(1.08);
 }
+/* --f is the bar's place in the chart, 0 (first) to 1 (last). Moving right by f of the chart
+   and back left by f of the tooltip lines up the tooltip's point f with the chart's point f,
+   so the tooltip covers its own bar yet never sticks out past either edge. A hidden
+   tooltip that stuck out used to make the whole page scroll sideways on phones. */
 .bar-tip {
   position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
+  top: -6px;
+  left: calc(var(--f, 0.5) * 100%);
   z-index: 2;
-  transform: translateX(-50%);
+  transform: translateX(calc(var(--f, 0.5) * -100%));
   padding: 5px 9px;
   border-radius: 8px;
   background: var(--ink);
@@ -1750,6 +1755,17 @@ textarea:focus {
 }
 .bar-col.is-today .bar-label {
   color: var(--accent-strong);
+}
+.today-short {
+  display: none;
+}
+@media (max-width: 560px) {
+  .today-long {
+    display: none;
+  }
+  .today-short {
+    display: inline;
+  }
 }
 .chart-meta {
   display: flex;
@@ -2458,6 +2474,12 @@ a.row:hover .row-title {
   color: inherit;
   text-decoration: none !important;
 }
+.stock-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
 .stock-bar {
   width: 90px;
   height: 6px;
@@ -2598,14 +2620,22 @@ a.row:hover .row-title {
 /* ==========================================================================
    Khata (udhaar) pages
    ========================================================================== */
+/* Phones and tablets: the amount owed across the top, the two small tiles side by side. */
 .khata-hero {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 18px;
+}
+.khata-hero > .owed-card {
+  grid-column: 1 / -1;
 }
 @media (min-width: 900px) {
   .khata-hero {
     grid-template-columns: 1.3fr 1fr 1fr;
+  }
+  .khata-hero > .owed-card {
+    grid-column: auto;
   }
 }
 .owed-card {
@@ -3703,6 +3733,86 @@ tr.row-cancelled td.num {
   .rows .row .btn-sm {
     padding: 0 9px;
   }
+
+  /* Page actions fill the width evenly instead of leaving ragged half-empty rows. */
+  .page-header > .button-row {
+    width: 100%;
+    gap: 8px;
+  }
+  .page-header > .button-row > .btn {
+    flex: 1 1 auto;
+    padding: 0 12px;
+  }
+
+  /* Tables (bills, products, khata): 16px of padding on every cell plus one-line dates made
+     them wider than a 320-360px phone, which cut off the Amount and Stock columns. */
+  .data-table th,
+  .data-table td {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .data-table th:first-child,
+  .data-table td:first-child {
+    padding-left: 14px;
+  }
+  .data-table th:last-child,
+  .data-table td:last-child {
+    padding-right: 14px;
+  }
+  .data-table .row-sub {
+    white-space: normal;
+  }
+  .stock-cell {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  .stock-bar {
+    width: 56px;
+  }
+
+  /* Summary tiles: two per row instead of one tall stack; an odd last tile takes the full
+     row. The amount shrinks with the screen so "₹26,189.50" fits half of a 320px phone. */
+  .summary-strip,
+  .khata-hero {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .summary-strip > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+  .summary-strip .kpi,
+  .khata-hero .kpi {
+    padding: 12px 14px;
+  }
+  .summary-strip .kpi-value,
+  .khata-hero .kpi-value {
+    font-size: clamp(17px, 5.4vw, 22px);
+  }
+}
+
+/* iOS Safari zooms the whole page when a field under 16px gets focus, and stays zoomed, so
+   the layout ends up half off-screen. Touch screens get 16px text in every field. (Blocking
+   zoom with maximum-scale=1 would also stop people pinch-zooming, so we don't.) */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea,
+  .field input,
+  .field select,
+  .input,
+  .search,
+  .stepper input,
+  .voice-lang,
+  .paper-select {
+    font-size: 16px;
+  }
+}
+
+/* Safety net: if a table is still too wide (a very long name, a huge zoom level), let it
+   scroll inside its card rather than silently cutting off the last column. */
+.table-card {
+  overflow-x: auto;
 }
 /* Phones: a bar above the tabs that jumps to the cart, which sits below the products. */
 .mobile-cart-bar {
