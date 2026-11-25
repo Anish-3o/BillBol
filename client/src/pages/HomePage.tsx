@@ -314,7 +314,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <footer className="landing-footer">BillBol · Made for India's kirana stores · Powered by Claude</footer>
+      <footer className="landing-footer">BillBol · Made for India's kirana stores · Built by Anish</footer>
     </div>
   );
 }
