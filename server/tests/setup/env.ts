@@ -11,3 +11,5 @@ process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-0123456789-abcdefghijklmno
 process.env.LLM_API_KEY = '';
 // Same for Sarvam (voice): tests mock fetch instead of calling the real speech service.
 process.env.SARVAM_API_KEY = '';
+// No cron secret by default (the cron routes are then switched off); cron tests set one.
+process.env.CRON_SECRET = '';

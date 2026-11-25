@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { assistantRouter } from './assistant.routes';
 import { authRouter } from './auth.routes';
 import { billRouter } from './bill.routes';
+import { cronRouter } from './cron.routes';
 import { customerRouter } from './customer.routes';
 import { healthRouter } from './health.routes';
 import { insightsRouter } from './insights.routes';
@@ -25,3 +26,4 @@ apiRouter.use('/staff', staffRouter); // owner manages helpers' logins
 apiRouter.use('/insights', insightsRouter); // dashboard numbers and the morning briefing
 apiRouter.use('/assistant', assistantRouter); // "Hey Ramu" voice assistant
 apiRouter.use('/voice', voiceRouter); // natural speech in and out (Sarvam), when configured
+apiRouter.use('/cron', cronRouter); // scheduled jobs (nightly demo reset at 3 am IST), secret-protected

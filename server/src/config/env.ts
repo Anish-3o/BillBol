@@ -26,6 +26,9 @@ const envSchema = z
     // browser's own (free, less accurate) speech recognition and voices.
     SARVAM_API_KEY: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(1).optional()),
     // Which Sarvam voice speaks Ramu's replies (a bulbul:v3 speaker name, lowercase).
+    // Shared secret for scheduled jobs (Vercel Cron sends it as 'Authorization: Bearer <secret>').
+    // Optional: without it the /api/cron routes answer 404, so nobody can trigger them.
+    CRON_SECRET: z.preprocess((v) => (v === '' ? undefined : v), z.string().min(32, 'must be at least 32 characters').optional()),
     SARVAM_SPEAKER: z.preprocess((v) => (v === '' ? undefined : v), z.string().regex(/^[a-z_]+$/).default('shubh')),
   })
   // Different secrets mean a refresh token can never be accepted as an access token (or vice versa).
