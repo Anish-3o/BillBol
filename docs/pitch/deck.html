@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BillBol: Bolo, aur bill taiyaar</title>
+<!-- Generated from the BillBol pitch deck. Arrow keys / click: next slide. F: full screen. Print: one slide per page. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;600&display=swap">
+<style>
+html, body { margin: 0; height: 100%; background: #0b1512; overflow: hidden; }
+/* BillBol pitch deck: the app's own brand. Deep emerald + saffron, Plus Jakarta Sans. */
+:root {
+  --deep: #063b31;
+  --deep-card: #0b4a3e;
+  --deep-line: #1f5f52;
+  --brand: #0e7c66;
+  --saffron: #f59e0b;
+  --ink: #0f172a;
+  --ink-2: #3b4a5c;
+  --paper: #f3f6f5;
+  --card: #fbfbf8;
+  --line: #d6e0dc;
+  --mint: #bfd8d5;
+  --light: #f1faf7;
+}
+
+section {
+  padding: 128px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Plus Jakarta Sans', 'Noto Sans Devanagari', Arial, sans-serif;
+}
+.dark { background: var(--deep); color: var(--light); }
+.accent { background: var(--brand); color: var(--light); }
+
+/* Type scale: 120 / 72 / 44 / 32 / 24 */
+h1 { font-size: 120px; font-weight: 800; line-height: 1.04; letter-spacing: -3px; margin: 0; }
+h2 { font-size: 72px; font-weight: 800; line-height: 1.1; letter-spacing: -1.5px; margin: 0; }
+h3 { font-size: 32px; font-weight: 800; line-height: 1.2; margin: 0; }
+p { font-size: 32px; line-height: 1.4; margin: 0; }
+
+.eyebrow { font-size: 24px; font-weight: 600; letter-spacing: 4px; text-transform: uppercase; color: var(--brand); margin-bottom: 24px; }
+.dark .eyebrow { color: var(--saffron); }
+.accent .eyebrow { color: var(--light); }
+.lead { font-size: 44px; line-height: 1.3; color: var(--ink-2); }
+.dark .lead, .accent .lead { color: var(--light); }
+.body { color: var(--ink-2); }
+.dark .body { color: var(--mint); }
+.small { font-size: 24px; line-height: 1.4; color: var(--ink-2); }
+.dark .small { color: var(--mint); }
+.hl { color: var(--saffron); }
+.hl-brand { color: var(--brand); }
+
+/* Layout */
+.stack { display: flex; flex-direction: column; }
+.spread { display: flex; flex-direction: column; justify-content: space-between; height: 824px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px; }
+.grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 32px; }
+.mt { margin-top: 64px; }
+.mt-s { margin-top: 32px; }
+
+/* Cards */
+.card { background: var(--card); border: 2px solid var(--line); border-radius: 24px; padding: 40px; display: flex; flex-direction: column; gap: 16px; }
+.dark .card { background: var(--deep-card); border-color: var(--deep-line); }
+.tile { background: var(--card); border: 2px solid var(--line); border-radius: 20px; padding: 28px; display: flex; flex-direction: row; gap: 20px; align-items: flex-start; }
+.tile-text { display: flex; flex-direction: column; gap: 6px; }
+.ico { width: 48px; height: 48px; color: var(--brand); }
+.dark .ico { color: var(--saffron); }
+.num { font-size: 72px; font-weight: 800; line-height: 1; color: var(--brand); }
+.dark .num { color: var(--saffron); }
+
+/* Cover: the voice bill on a phone */
+.cover-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 96px; align-items: center; height: 824px; }
+.wordmark { font-size: 44px; font-weight: 800; letter-spacing: -1px; margin-bottom: 48px; }
+.phone { background: var(--light); color: var(--ink); border-radius: 48px; padding: 40px; display: flex; flex-direction: column; gap: 20px; box-shadow: 0 40px 80px rgba(0, 0, 0, 0.35); }
+.bubble-me { background: var(--saffron); color: var(--ink); border-radius: 24px 24px 6px 24px; padding: 20px 24px; font-size: 28px; line-height: 1.35; font-weight: 600; align-self: flex-end; }
+.bubble-ramu { background: #e2efeb; color: var(--ink); border-radius: 24px 24px 24px 6px; padding: 20px 24px; font-size: 28px; line-height: 1.35; align-self: flex-start; }
+.bill { background: var(--card); border: 2px solid var(--line); border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 10px; }
+.bill-row { display: flex; justify-content: space-between; gap: 24px; }
+.bill-cell { font-size: 26px; color: var(--ink-2); }
+.bill-total { font-size: 28px; font-weight: 800; color: var(--ink); }
+.bill-head { font-size: 24px; font-weight: 600; color: var(--brand); }
+.pill-yes { background: var(--brand); color: var(--light); border-radius: 999px; padding: 14px 32px; font-size: 28px; font-weight: 800; align-self: flex-end; }
+
+/* Lists inside cards (roadmap) */
+.card-list { font-size: 28px; line-height: 1.4; color: var(--ink-2); margin: 0; padding-left: 36px; }
+
+/* Numbered list (demo steps) */
+.steps { font-size: 32px; line-height: 1.4; color: var(--mint); margin: 0; padding-left: 44px; }
+
+/* Tables */
+.tbl { font-size: 28px; color: var(--ink); width: 100%; }
+
+/* Motion: content rises in on arrival, staged with --i. The plain rule is the finished look. */
+@keyframes rise { from { opacity: 0; transform: translateY(24px); } }
+.rise { animation: rise 0.6s ease-out both; animation-delay: calc(var(--i, 0) * 120ms); }
+
+.stage { position: fixed; left: 50%; top: 50%; width: 1920px; height: 1080px; }
+.stage > section { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; box-sizing: border-box; overflow: hidden; display: none; }
+.stage > section.on { display: block; }
+.hud { position: fixed; right: 16px; bottom: 12px; font: 14px system-ui, sans-serif; color: #8fb3aa; user-select: none; }
+@media print {
+  @page { size: 1920px 1080px; margin: 0; }
+  html, body { height: auto; overflow: visible; background: none; }
+  .stage { position: static; transform: none !important; width: auto; height: auto; }
+  .stage > section { display: block; position: relative; break-after: page; }
+  .hud { display: none; }
+  .rise { animation: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+<section id="cover" class="dark">
+<div class="cover-grid">
+<div class="stack">
+<p class="wordmark">Bill<span class="hl">Bol</span></p>
+<h1>Bolo, aur<br><span class="hl">bill taiyaar.</span></h1>
+<p class="lead mt-s">Voice-first billing and khata for India’s kirana stores.</p>
+<p class="small mt">[Your name] · [Event] · [Date]</p>
+</div>
+<div class="phone rise" style="--i:2">
+<p class="bubble-me">“Hey Ramu, do kilo cheeni, ek Tata namak aur teen Maggi”</p>
+<p class="bubble-ramu">Cheeni 2 kg, Tata Salt 1, Maggi 3. Kul ₹162. Confirm karun?</p>
+<div class="bill">
+<p class="bill-head">Draft bill · 3 items</p>
+<div class="bill-row"><p class="bill-cell">Sugar (loose) × 2 kg</p><p class="bill-cell">₹92</p></div>
+<div class="bill-row"><p class="bill-cell">Tata Salt 1kg × 1</p><p class="bill-cell">₹28</p></div>
+<div class="bill-row"><p class="bill-cell">Maggi Noodles 70g × 3</p><p class="bill-cell">₹42</p></div>
+<div class="bill-row"><p class="bill-total">Total</p><p class="bill-total">₹162</p></div>
+</div>
+<p class="pill-yes">“Haan” → saved</p>
+</div>
+</div>
+</section>
+<section id="problem">
+<p class="eyebrow">The problem</p>
+<h2>The busiest moment at the counter still runs on pen, paper and memory.</h2>
+<div class="grid3 mt">
+<div class="card rise" style="--i:1">
+
+<h3>Bills by hand</h3>
+<p class="body">In the evening rush, totals are added on a calculator or in a notebook while the queue waits.</p>
+</div>
+<div class="card rise" style="--i:2">
+
+<h3>Udhaar in a diary</h3>
+<p class="body">Credit to regular customers lives in a notebook. Reminders are awkward, and money gets forgotten.</p>
+</div>
+<div class="card rise" style="--i:3">
+
+<h3>Apps built for typing</h3>
+<p class="body">Most billing software expects English typing at a desk. The counter has neither.</p>
+</div>
+</div>
+</section>
+<section id="insight" class="accent">
+<div class="spread">
+<p class="eyebrow">The insight</p>
+<h1>Every order is already spoken out loud.</h1>
+<div class="stack">
+<p class="lead">“Bhaiya, do kilo cheeni, ek namak aur teen Maggi.”</p>
+<p class="lead mt-s"><b>BillBol turns that sentence into a bill.</b></p>
+</div>
+</div>
+</section>
+<section id="flow">
+<p class="eyebrow">How it works</p>
+<h2>A voice bill in four steps</h2>
+<div class="grid4 mt">
+<div class="card rise" style="--i:1">
+<p class="num">1</p>
+<h3>“Hey Ramu”</h3>
+<p class="small">Ramu listens hands-free at the counter, or the shopkeeper taps the mic.</p>
+</div>
+<div class="card rise" style="--i:2">
+<p class="num">2</p>
+<h3>Speak the order</h3>
+<p class="small">In Hindi, Hinglish or Marathi. Items and quantities are matched to the shop’s own products and prices.</p>
+</div>
+<div class="card rise" style="--i:3">
+<p class="num">3</p>
+<h3>Ramu reads it back</h3>
+<p class="small">Each item and the total, calculated by the app, are read aloud. It can take the customer’s name for udhaar.</p>
+</div>
+<div class="card rise" style="--i:4">
+<p class="num">4</p>
+<h3>“Haan” saves it</h3>
+<p class="small">Only a spoken or tapped yes saves the bill, updates stock and prints the receipt.</p>
+</div>
+</div>
+</section>
+<section id="trust" class="dark">
+<p class="eyebrow">Why shopkeepers can trust it</p>
+<h2>AI drafts. The shopkeeper decides.</h2>
+<div class="grid3 mt">
+<div class="card rise" style="--i:1">
+
+<h3>Nothing saves without a yes</h3>
+<p class="body">Voice and scanned items stay a draft until a person confirms. Stock, money and invoices never change on the AI’s word.</p>
+</div>
+<div class="card rise" style="--i:2">
+
+<h3>AI never does the maths</h3>
+<p class="body">Totals, GST and summaries are calculated in code. The AI only turns real numbers into friendly sentences.</p>
+</div>
+<div class="card rise" style="--i:3">
+
+<h3>Exact to the paisa</h3>
+<p class="body">Money is stored as whole paise, never decimals, so a ₹131 bill can never become ₹130.99.</p>
+</div>
+</div>
+</section>
+<section id="counter">
+<p class="eyebrow">Everything at the counter</p>
+<h2>Fits the shop as it already is</h2>
+<div class="grid3 mt">
+<div class="tile rise" style="--i:1"><div class="tile-text"><h3>Any scanner</h3><p class="small">USB or Bluetooth barcode scanner, or the phone’s camera.</p></div></div>
+<div class="tile rise" style="--i:1"><div class="tile-text"><h3>Any printer</h3><p class="small">58 or 80 mm thermal receipts, or A4 and PDF.</p></div></div>
+<div class="tile rise" style="--i:1"><div class="tile-text"><h3>UPI QR</h3><p class="small">Exact amount filled in, for any UPI app.</p></div></div>
+<div class="tile rise" style="--i:2"><div class="tile-text"><h3>Udhaar khata</h3><p class="small">Balances, payments and WhatsApp reminder drafts.</p></div></div>
+<div class="tile rise" style="--i:2"><div class="tile-text"><h3>GST bills</h3><p class="small">Tax invoice or bill of supply, CGST and SGST.</p></div></div>
+<div class="tile rise" style="--i:2"><div class="tile-text"><h3>Staff logins</h3><p class="small">Set up by the owner, with limits on cancelling.</p></div></div>
+<div class="tile rise" style="--i:3"><div class="tile-text"><h3>Receive goods</h3><p class="small">Scan a delivery into stock, with who counted it.</p></div></div>
+<div class="tile rise" style="--i:3"><div class="tile-text"><h3>Bulk prices</h3><p class="small">Upload a price list from Excel, preview first.</p></div></div>
+<div class="tile rise" style="--i:3"><div class="tile-text"><h3>Hold a bill</h3><p class="small">Serve the next customer, come back later.</p></div></div>
+</div>
+</section>
+<section id="ramu">
+<p class="eyebrow">Ramu, the assistant</p>
+<h2>Ask the shop a question, get a straight answer</h2>
+<div class="grid2 mt">
+<div class="phone rise" style="--i:1">
+<p class="bill-head">Illustrative example</p>
+<p class="bubble-me">“Ramu, aaj kitni bikri hui?”</p>
+<p class="bubble-ramu">Aaj ab tak [₹__] ki bikri, [__] bills. Amul doodh jaldi khatam ho sakta hai, order kar lijiye.</p>
+</div>
+<div class="stack" style="gap:40px">
+<div class="tile-text rise" style="--i:2"><h3>Morning briefing</h3><p class="small">Yesterday’s sales, udhaar due and what is running low, ready when the shop opens.</p></div>
+<div class="tile-text rise" style="--i:3"><h3>Sales questions</h3><p class="small">“Aaj kitni bikri hui?”, “Sabse zyada kya bika?” answered from the shop’s own bills.</p></div>
+<div class="tile-text rise" style="--i:4"><h3>Restock suggestions</h3><p class="small">Based on how fast each item really sells, not guesses.</p></div>
+</div>
+</div>
+</section>
+<section id="india" class="dark">
+<p class="eyebrow">Made for Indian shops</p>
+<h2>Built for the counter, not adapted to it</h2>
+<div class="grid4 mt">
+<div class="card rise" style="--i:1">
+<p class="num">3</p>
+<h3>Indian languages</h3>
+<p class="small">Hindi, Hinglish and Marathi by voice, with Hindi product names.</p>
+</div>
+<div class="card rise" style="--i:2">
+<p class="num">1 tap</p>
+<h3>Install from the website</h3>
+<p class="small">No Play Store. A home-screen icon that opens like an app.</p>
+</div>
+<div class="card rise" style="--i:3">
+<p class="num">0</p>
+<h3>Internet needed to open</h3>
+<p class="small">The app opens offline and carries on by itself when the connection returns.</p>
+</div>
+<div class="card rise" style="--i:4">
+<p class="num">95 kB</p>
+<h3>First download</h3>
+<p class="small">Small enough to load fast on a budget phone over patchy 4G.</p>
+</div>
+</div>
+</section>
+<section id="tech">
+<p class="eyebrow">Under the hood</p>
+<h2>Built like a real product</h2>
+<table class="tbl mt">
+<tr><th style="width:24%">Part</th><th>What it uses</th></tr>
+<tr><td>App</td><td>React 19 and TypeScript, installable as a PWA</td></tr>
+<tr><td>Server</td><td>Express 5 and MongoDB; every query filtered by shop (multi-tenant)</td></tr>
+<tr><td>AI</td><td>Claude understands orders; Sarvam for Indian-language speech; offline fallback parser</td></tr>
+<tr><td>Quality</td><td>304 server tests and 66 client tests, run by CI on every push</td></tr>
+<tr><td>Security</td><td>httpOnly cookies, rotating refresh tokens, rate limits on login and AI</td></tr>
+<tr><td>Hosting</td><td>Vercel (Mumbai region) with MongoDB Atlas, demo shop reset nightly</td></tr>
+</table>
+</section>
+<section id="demo" class="dark">
+<p class="eyebrow">Try it now</p>
+<h2>billbol.vercel.app</h2>
+<p class="lead mt-s">Press “Try the live demo”: Sharma Kirana Store, 50 products, a month of bills.</p>
+<div class="grid2 mt">
+<div class="stack" style="gap:20px">
+<h3>What to try</h3>
+<ol class="steps">
+<li>Dashboard: today’s sales and the morning briefing</li>
+<li>New bill: “Hey Ramu, do kilo cheeni aur teen Maggi”, then “haan”</li>
+<li>Scan a barcode, or show the UPI QR</li>
+<li>Udhaar khata: send a WhatsApp reminder</li>
+</ol>
+</div>
+<div class="stack rise" style="--i:2; align-items:center; gap:16px">
+<svg xmlns="http://www.w3.org/2000/svg" aria-label="QR code linking to billbol.vercel.app" viewBox="0 0 29 29" width="29" height="29" shape-rendering="crispEdges" style="width:320px;height:320px"><rect width="29" height="29" fill="#fbfbf8"/><path d="M2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM5 2h1v1h-1zM6 2h1v1h-1zM7 2h1v1h-1zM8 2h1v1h-1zM18 2h1v1h-1zM20 2h1v1h-1zM21 2h1v1h-1zM22 2h1v1h-1zM23 2h1v1h-1zM24 2h1v1h-1zM25 2h1v1h-1zM26 2h1v1h-1zM2 3h1v1h-1zM8 3h1v1h-1zM11 3h1v1h-1zM12 3h1v1h-1zM14 3h1v1h-1zM16 3h1v1h-1zM17 3h1v1h-1zM20 3h1v1h-1zM26 3h1v1h-1zM2 4h1v1h-1zM4 4h1v1h-1zM5 4h1v1h-1zM6 4h1v1h-1zM8 4h1v1h-1zM10 4h1v1h-1zM11 4h1v1h-1zM12 4h1v1h-1zM13 4h1v1h-1zM16 4h1v1h-1zM18 4h1v1h-1zM20 4h1v1h-1zM22 4h1v1h-1zM23 4h1v1h-1zM24 4h1v1h-1zM26 4h1v1h-1zM2 5h1v1h-1zM4 5h1v1h-1zM5 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM10 5h1v1h-1zM11 5h1v1h-1zM12 5h1v1h-1zM13 5h1v1h-1zM14 5h1v1h-1zM15 5h1v1h-1zM16 5h1v1h-1zM17 5h1v1h-1zM18 5h1v1h-1zM20 5h1v1h-1zM22 5h1v1h-1zM23 5h1v1h-1zM24 5h1v1h-1zM26 5h1v1h-1zM2 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM11 6h1v1h-1zM12 6h1v1h-1zM13 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM23 6h1v1h-1zM24 6h1v1h-1zM26 6h1v1h-1zM2 7h1v1h-1zM8 7h1v1h-1zM10 7h1v1h-1zM11 7h1v1h-1zM12 7h1v1h-1zM13 7h1v1h-1zM15 7h1v1h-1zM17 7h1v1h-1zM20 7h1v1h-1zM26 7h1v1h-1zM2 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM8 8h1v1h-1zM10 8h1v1h-1zM12 8h1v1h-1zM14 8h1v1h-1zM16 8h1v1h-1zM18 8h1v1h-1zM20 8h1v1h-1zM21 8h1v1h-1zM22 8h1v1h-1zM23 8h1v1h-1zM24 8h1v1h-1zM25 8h1v1h-1zM26 8h1v1h-1zM10 9h1v1h-1zM13 9h1v1h-1zM18 9h1v1h-1zM2 10h1v1h-1zM4 10h1v1h-1zM5 10h1v1h-1zM6 10h1v1h-1zM7 10h1v1h-1zM8 10h1v1h-1zM12 10h1v1h-1zM13 10h1v1h-1zM15 10h1v1h-1zM16 10h1v1h-1zM20 10h1v1h-1zM21 10h1v1h-1zM22 10h1v1h-1zM23 10h1v1h-1zM24 10h1v1h-1zM3 11h1v1h-1zM4 11h1v1h-1zM5 11h1v1h-1zM10 11h1v1h-1zM14 11h1v1h-1zM21 11h1v1h-1zM25 11h1v1h-1zM3 12h1v1h-1zM7 12h1v1h-1zM8 12h1v1h-1zM11 12h1v1h-1zM12 12h1v1h-1zM15 12h1v1h-1zM17 12h1v1h-1zM22 12h1v1h-1zM23 12h1v1h-1zM25 12h1v1h-1zM26 12h1v1h-1zM2 13h1v1h-1zM4 13h1v1h-1zM5 13h1v1h-1zM7 13h1v1h-1zM10 13h1v1h-1zM16 13h1v1h-1zM17 13h1v1h-1zM18 13h1v1h-1zM19 13h1v1h-1zM20 13h1v1h-1zM26 13h1v1h-1zM2 14h1v1h-1zM4 14h1v1h-1zM8 14h1v1h-1zM14 14h1v1h-1zM15 14h1v1h-1zM16 14h1v1h-1zM19 14h1v1h-1zM20 14h1v1h-1zM22 14h1v1h-1zM24 14h1v1h-1zM25 14h1v1h-1zM26 14h1v1h-1zM2 15h1v1h-1zM3 15h1v1h-1zM7 15h1v1h-1zM11 15h1v1h-1zM12 15h1v1h-1zM14 15h1v1h-1zM18 15h1v1h-1zM21 15h1v1h-1zM23 15h1v1h-1zM25 15h1v1h-1zM2 16h1v1h-1zM5 16h1v1h-1zM7 16h1v1h-1zM8 16h1v1h-1zM10 16h1v1h-1zM14 16h1v1h-1zM16 16h1v1h-1zM17 16h1v1h-1zM18 16h1v1h-1zM19 16h1v1h-1zM21 16h1v1h-1zM22 16h1v1h-1zM23 16h1v1h-1zM25 16h1v1h-1zM26 16h1v1h-1zM2 17h1v1h-1zM4 17h1v1h-1zM9 17h1v1h-1zM10 17h1v1h-1zM11 17h1v1h-1zM12 17h1v1h-1zM14 17h1v1h-1zM16 17h1v1h-1zM18 17h1v1h-1zM20 17h1v1h-1zM21 17h1v1h-1zM22 17h1v1h-1zM26 17h1v1h-1zM2 18h1v1h-1zM8 18h1v1h-1zM15 18h1v1h-1zM16 18h1v1h-1zM18 18h1v1h-1zM19 18h1v1h-1zM20 18h1v1h-1zM21 18h1v1h-1zM22 18h1v1h-1zM24 18h1v1h-1zM10 19h1v1h-1zM11 19h1v1h-1zM13 19h1v1h-1zM15 19h1v1h-1zM17 19h1v1h-1zM18 19h1v1h-1zM22 19h1v1h-1zM23 19h1v1h-1zM2 20h1v1h-1zM3 20h1v1h-1zM4 20h1v1h-1zM5 20h1v1h-1zM6 20h1v1h-1zM7 20h1v1h-1zM8 20h1v1h-1zM11 20h1v1h-1zM14 20h1v1h-1zM16 20h1v1h-1zM18 20h1v1h-1zM20 20h1v1h-1zM22 20h1v1h-1zM24 20h1v1h-1zM25 20h1v1h-1zM26 20h1v1h-1zM2 21h1v1h-1zM8 21h1v1h-1zM10 21h1v1h-1zM12 21h1v1h-1zM14 21h1v1h-1zM18 21h1v1h-1zM22 21h1v1h-1zM23 21h1v1h-1zM2 22h1v1h-1zM4 22h1v1h-1zM5 22h1v1h-1zM6 22h1v1h-1zM8 22h1v1h-1zM10 22h1v1h-1zM15 22h1v1h-1zM17 22h1v1h-1zM18 22h1v1h-1zM19 22h1v1h-1zM20 22h1v1h-1zM21 22h1v1h-1zM22 22h1v1h-1zM24 22h1v1h-1zM2 23h1v1h-1zM4 23h1v1h-1zM5 23h1v1h-1zM6 23h1v1h-1zM8 23h1v1h-1zM10 23h1v1h-1zM13 23h1v1h-1zM15 23h1v1h-1zM17 23h1v1h-1zM18 23h1v1h-1zM19 23h1v1h-1zM20 23h1v1h-1zM22 23h1v1h-1zM23 23h1v1h-1zM24 23h1v1h-1zM25 23h1v1h-1zM26 23h1v1h-1zM2 24h1v1h-1zM4 24h1v1h-1zM5 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM10 24h1v1h-1zM11 24h1v1h-1zM12 24h1v1h-1zM15 24h1v1h-1zM16 24h1v1h-1zM17 24h1v1h-1zM23 24h1v1h-1zM24 24h1v1h-1zM26 24h1v1h-1zM2 25h1v1h-1zM8 25h1v1h-1zM11 25h1v1h-1zM12 25h1v1h-1zM14 25h1v1h-1zM17 25h1v1h-1zM18 25h1v1h-1zM19 25h1v1h-1zM21 25h1v1h-1zM22 25h1v1h-1zM23 25h1v1h-1zM26 25h1v1h-1zM2 26h1v1h-1zM3 26h1v1h-1zM4 26h1v1h-1zM5 26h1v1h-1zM6 26h1v1h-1zM7 26h1v1h-1zM8 26h1v1h-1zM10 26h1v1h-1zM11 26h1v1h-1zM12 26h1v1h-1zM14 26h1v1h-1zM15 26h1v1h-1zM16 26h1v1h-1zM20 26h1v1h-1zM21 26h1v1h-1zM22 26h1v1h-1zM23 26h1v1h-1zM24 26h1v1h-1zM25 26h1v1h-1zM26 26h1v1h-1z" fill="#0f172a"/></svg>
+<p class="small">Scan to open the demo · no sign-up</p>
+</div>
+</div>
+</section>
+<section id="model">
+<p class="eyebrow">Business model</p>
+<h2>Free to start, paid when it saves real time</h2>
+<div class="grid3 mt">
+<div class="card rise" style="--i:1">
+<h3>Free</h3>
+<p class="body">Billing, barcode, printing and the udhaar khata for one counter. [Confirm what is free]</p>
+</div>
+<div class="card rise" style="--i:2">
+<h3>Pro · ₹[__] / month</h3>
+<p class="body">Voice billing with Ramu, WhatsApp reminders, staff logins and insights. [Confirm price and features]</p>
+</div>
+<div class="card rise" style="--i:3">
+<h3>Partners</h3>
+<p class="body">[Who brings shops to you: distributors, FMCG brands, POS resellers?]</p>
+</div>
+</div>
+<p class="small mt">Market: [number of kirana stores in India, with source] · [Your first target city or segment]</p>
+</section>
+<section id="roadmap">
+<p class="eyebrow">Roadmap</p>
+<h2>Built, next and later</h2>
+<div class="grid3 mt">
+<div class="card rise" style="--i:1">
+<h3 class="hl-brand">Built and live</h3>
+<ul class="card-list">
+<li>Voice billing with Ramu</li>
+<li>Barcode, printing, UPI QR</li>
+<li>GST bills and udhaar khata</li>
+<li>Staff logins, receiving goods</li>
+<li>Installs as an app</li>
+</ul>
+</div>
+<div class="card rise" style="--i:2">
+<h3 class="hl-brand">Next</h3>
+<ul class="card-list">
+<li>Save bills offline and sync when the internet is back</li>
+<li>[Pilot with __ shops in __]</li>
+</ul>
+</div>
+<div class="card rise" style="--i:3">
+<h3 class="hl-brand">Later</h3>
+<ul class="card-list">
+<li>[More languages]</li>
+<li>[Your next big feature]</li>
+</ul>
+</div>
+</div>
+</section>
+<section id="ask" class="dark">
+<div class="spread">
+<div class="stack">
+<p class="eyebrow">The ask</p>
+<h1>[Your ask, in one line]</h1>
+<p class="lead mt-s">[For example: 10 kirana shops for a four-week pilot, mentors, or funding of ₹__]</p>
+</div>
+<div class="stack" style="gap:12px">
+<p class="wordmark" style="margin-bottom:0">Bill<span class="hl">Bol</span> · Bolo, aur bill taiyaar.</p>
+<p class="small">[Your name] · [email or phone] · billbol.vercel.app · github.com/Anish-3o/BillBol</p>
+</div>
+</div>
+</section>
+</div>
+<div class="hud" id="hud"></div>
+<script>
+// Fit the 1920x1080 slides to any window, keep the slide number in the URL (#3), and move with
+// arrow keys, space, Page Up/Down or a click. F toggles full screen.
+const slides = Array.from(document.querySelectorAll('.stage > section'));
+const stage = document.getElementById('stage');
+const hud = document.getElementById('hud');
+let current = Math.min(slides.length, Math.max(1, parseInt(location.hash.slice(1), 10) || 1)) - 1;
+function fit() {
+  const k = Math.min(innerWidth / 1920, innerHeight / 1080);
+  stage.style.transform = 'translate(-50%, -50%) scale(' + k + ')';
+}
+function show(i) {
+  current = Math.min(slides.length - 1, Math.max(0, i));
+  slides.forEach((s, j) => s.classList.toggle('on', j === current));
+  hud.textContent = (current + 1) + ' / ' + slides.length;
+  history.replaceState(null, '', '#' + (current + 1));
+}
+addEventListener('resize', fit);
+addEventListener('keydown', (e) => {
+  if (['ArrowRight', 'ArrowDown', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); show(current + 1); }
+  else if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); show(current - 1); }
+  else if (e.key === 'Home') show(0);
+  else if (e.key === 'End') show(slides.length - 1);
+  else if (e.key === 'f' || e.key === 'F') document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+});
+addEventListener('click', (e) => { if (!e.target.closest('a')) show(current + 1); });
+fit();
+show(current);
+</script>
+</body>
+</html>
