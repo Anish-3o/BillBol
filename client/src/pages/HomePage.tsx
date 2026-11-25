@@ -1,12 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { ApiError } from '../api/client';
-import { BrandMark } from '../components/AppLayout';
+import { BrandMark } from '../components/BrandMark';
 import { Icon, type IconName } from '../components/Icon';
 import { useAuth } from '../hooks/useAuth';
-
-
-import { DEMO_LOGIN } from '../lib/demo';
+import { DEMO_LOGIN, demoErrorMessage } from '../lib/demo';
 import { useInstallPrompt } from '../lib/installPrompt';
 
 const FEATURES: { icon: IconName; tone?: string; title: string; text: string; badge?: string }[] = [
@@ -67,11 +64,7 @@ export default function HomePage() {
       await login(DEMO_LOGIN.phone, DEMO_LOGIN.password);
       navigate('/dashboard');
     } catch (err) {
-      setDemoError(
-        err instanceof ApiError && err.status === 401
-          ? 'The demo shop is not set up yet. Run "npm run seed:demo", then try again.'
-          : 'Could not reach BillBol. Is the API running?',
-      );
+      setDemoError(demoErrorMessage(err, import.meta.env.DEV));
       setDemoBusy(false);
     }
   }

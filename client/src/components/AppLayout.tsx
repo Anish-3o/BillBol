@@ -1,20 +1,14 @@
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
 import { phaseLabel } from '../context/assistant-context';
 import { AssistantProvider } from '../context/AssistantProvider';
 import { useAssistant } from '../hooks/useAssistant';
 import { useAuth, useSession } from '../hooks/useAuth';
 import { useInstallPrompt } from '../lib/installPrompt';
+import { BrandMark } from './BrandMark';
 import { Icon, type IconName } from './Icon';
 import { RamuOrb, RamuPanel } from './RamuPanel';
-
-export function BrandMark({ size = 36 }: { size?: number }) {
-  return (
-    <span className="brand-mark" style={{ width: size, height: size }}>
-      <Icon name="mic" size={size * 0.5} />
-    </span>
-  );
-}
+import { PageLoader } from './RouteGuards';
 
 type NavItem = { to: string; label: string; icon: IconName; end?: boolean };
 const NAV: NavItem[] = [
@@ -149,7 +143,10 @@ function Shell() {
           </div>
         </header>
 
-        <Outlet />
+        {/* A page's code loads the first time it is opened (see App.tsx); the menu stays put. */}
+        <Suspense fallback={<PageLoader inline />}>
+          <Outlet />
+        </Suspense>
       </div>
 
       {/* Phones: bottom tabs with the assistant in the middle. */}
