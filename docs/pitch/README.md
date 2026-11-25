@@ -2,6 +2,7 @@
 
 Pitch material for presenting BillBol: a 13-slide deck (about 8 to 10 minutes with the live demo) and the speaker notes for every slide.
 
+- **[BillBol-pitch.pdf](BillBol-pitch.pdf)** and **[BillBol-pitch.pptx](BillBol-pitch.pptx)**: the deck as a PDF to share and as an editable PowerPoint file with speaker notes.
 - **[deck.html](deck.html)**: open it in Chrome or Edge. Arrow keys, space or a click move between slides, **F** goes full screen, and printing gives a PDF with one slide per page. It works without internet apart from the web fonts, which makes it a good backup if the venue's Wi-Fi fails.
 - The same deck is also kept as an editable claude.ai Slides deck (with icons and PowerPoint / PDF export).
 

@@ -35,3 +35,6 @@ Thumbs.db
 
 # Vercel CLI (local project link)
 .vercel
+
+# Local instructions for Claude Code (kept on this machine, not published)
+CLAUDE.md
